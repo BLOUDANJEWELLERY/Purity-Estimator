@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gold Purity Estimator</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #c7a332;
+      font-family: sans-serif;
+      max-width: 400px;
+      margin: 2rem auto;
+      padding: 1rem;
+      border: 1px solid #c7a332;
+      border-radius: 10px;
+    }
+
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    input, button {
+      padding: 0.6rem;
+      background: #222;
+      border: 1px solid #c7a332;
+      color: #c7a332;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .result {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background-color: #1a1a1a;
+      border: 1px dashed #c7a332;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gold Purity Estimator</h1>
+  
+  <label for="weight">Dry Weight (grams):</label>
+  <input type="number" id="weight" step="0.01" />
+
+  <label for="volume">Displaced Water (grams/cm³):</label>
+  <input type="number" id="volume" step="0.01" />
+
+  <button onclick="calculatePurity()">Estimate Purity</button>
+
+  <div class="result" id="output"></div>
+
+  <script>
+    function calculatePurity() {
+      const weight = parseFloat(document.getElementById('weight').value);
+      const volume = parseFloat(document.getElementById('volume').value);
+      const output = document.getElementById('output');
+
+      if (!weight || !volume || volume === 0) {
+        output.innerHTML = 'Please enter valid values.';
+        return;
+      }
+
+      const density = weight / volume;
+      const maxDensity = 19.32;
+      const purityPercent = Math.min((density / maxDensity) * 100, 100);
+      const karat = (purityPercent / 100) * 24;
+
+      output.innerHTML = `
+        <strong>Estimated Density:</strong> ${density.toFixed(2)} g/cm³<br />
+        <strong>Estimated Purity:</strong> ${purityPercent.toFixed(2)}%<br />
+        <strong>Approximate Karat:</strong> ${karat.toFixed(1)}k
+      `;
+    }
+  </script>
+</body>
+</html>
