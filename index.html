@@ -1,108 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Gold Purity Scanner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gold Purity Estimator</title>
   <style>
     body {
-      margin: 0;
-      font-family: 'Arial', sans-serif;
-      background-color: #121212;
+      background-color: #111;
       color: #c7a332;
-      overflow: hidden;
-    }
-
-    #scanBtn {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background-color: #c7a332;
-      color: black;
-      border: none;
-      padding: 12px 20px;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      z-index: 2;
-    }
-
-    #resultBox {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 16px;
+      font-family: sans-serif;
+      max-width: 400px;
+      margin: 2rem auto;
+      padding: 1rem;
       border: 1px solid #c7a332;
-      border-radius: 8px;
+      border-radius: 10px;
+    }
+
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    input, button {
+      padding: 0.6rem;
+      background: #222;
+      border: 1px solid #c7a332;
       color: #c7a332;
-      font-size: 16px;
-      z-index: 2;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .result {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background-color: #1a1a1a;
+      border: 1px dashed #c7a332;
     }
   </style>
 </head>
 <body>
-  <button id="scanBtn">Start LiDAR Scan</button>
-  <div id="resultBox">Volume: 0 cm³<br>Density: -<br>Purity: -</div>
+  <h1>Gold Purity Estimator</h1>
+  
+  <label for="weight">Dry Weight (grams):</label>
+  <input type="number" id="weight" step="0.01" />
 
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
-    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/webxr/ARButton.js';
+  <label for="volume">Displaced Water (grams/cm³):</label>
+  <input type="number" id="volume" step="0.01" />
 
-    let camera, scene, renderer;
-    let controller;
-    let volume = 0;
+  <button onclick="calculatePurity()">Estimate Purity</button>
 
-    init();
-    function init() {
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera();
+  <div class="result" id="output"></div>
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
+  <script>
+    function calculatePurity() {
+      const weight = parseFloat(document.getElementById('weight').value);
+      const volume = parseFloat(document.getElementById('volume').value);
+      const output = document.getElementById('output');
 
-      document.body.appendChild(ARButton.createButton(renderer, {
-        requiredFeatures: ['hit-test', 'dom-overlay'],
-        domOverlay: { root: document.body }
-      }));
-
-      controller = renderer.xr.getController(0);
-      controller.addEventListener('select', onSelect);
-      scene.add(controller);
-
-      animate();
-    }
-
-    function onSelect() {
-      const geometry = new THREE.BoxGeometry(0.03, 0.03, 0.03); // Simulate a 3cm cube
-      const material = new THREE.MeshBasicMaterial({ color: 0xc7a332 });
-      const cube = new THREE.Mesh(geometry, material);
-      cube.position.setFromMatrixPosition(controller.matrixWorld);
-      scene.add(cube);
-
-      volume += 0.03 * 0.03 * 0.03 * 1000; // cm³
-      updateResult();
-    }
-
-    function updateResult() {
-      const weight = prompt("Enter weight in grams:");
-      if (!weight || isNaN(weight)) return;
+      if (!weight || !volume || volume === 0) {
+        output.innerHTML = 'Please enter valid values.';
+        return;
+      }
 
       const density = weight / volume;
-      const purity = Math.min((density / 19.32) * 100, 100).toFixed(2);
-      const karat = Math.min((purity / 100) * 24, 24).toFixed(2);
+      let karat = '';
+      let percent = '';
+      
+      if (density >= 19.0) {
+        karat = '24k';
+        percent = '99.9%';
+      } else if (density >= 17.7) {
+        karat = '22k';
+        percent = '91.6%';
+      } else if (density >= 15.5) {
+        karat = '18k';
+        percent = '75%';
+      } else if (density >= 13.5) {
+        karat = '14k';
+        percent = '58.5%';
+      } else {
+        karat = 'Below 14k';
+        percent = '<58%';
+      }
 
-      document.getElementById("resultBox").innerHTML =
-        `Volume: ${volume.toFixed(2)} cm³<br>
-         Density: ${density.toFixed(2)} g/cm³<br>
-         Purity: ${purity}%<br>
-         Karat: ${karat}`;
-    }
-
-    function animate() {
-      renderer.setAnimationLoop(() => renderer.render(scene, camera));
+      output.innerHTML = `
+        <strong>Estimated Density:</strong> ${density.toFixed(2)} g/cm³<br />
+        <strong>Estimated Purity:</strong> ${karat} (${percent})
+      `;
     }
   </script>
 </body>
