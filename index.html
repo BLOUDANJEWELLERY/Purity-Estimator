@@ -45,12 +45,6 @@
       border-radius: 5px;
       margin-top: 10px;
     }
-    .instruction-box {
-      background-color: #333;
-      padding: 15px;
-      margin-top: 15px;
-      border-left: 4px solid #c7a332;
-    }
     .progress-bar {
       background-color: #222;
       border-radius: 5px;
@@ -59,35 +53,34 @@
     }
     .progress {
       height: 20px;
+      background-color: #c7a332;
       text-align: center;
       color: #000;
       font-weight: bold;
       line-height: 20px;
-      transition: width 0.3s ease, background-color 0.3s ease;
     }
-    .preview-img {
-      max-width: 100%;
-      margin-top: 10px;
-      border: 1px solid #555;
+    #arContainer {
+      width: 100%;
+      height: 400px;
+      background-color: #333;
+      margin-top: 20px;
+      border-radius: 10px;
     }
   </style>
-  <!-- OpenCV.js -->
-  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
 </head>
 <body>
   <div class="container">
     <h1>Gold Purity & Volume Estimator</h1>
 
-    <!-- Option A -->
+    <!-- Option A: WebXR 3D Scanning -->
     <div class="section">
-      <h2>Option A: Advanced 3D Scanning</h2>
-      <button onclick="start3DScan()">Start 3D Scan</button>
-      <div id="scanResult" class="result-box"></div>
+      <h2>Option A: Advanced 3D Scanning (AR)</h2>
+      <button onclick="startARSession()">Start AR Scan</button>
+      <div id="arContainer"></div>
+      <div id="arResult" class="result-box"></div>
     </div>
 
-    <!-- Option B -->
+    <!-- Option B: Image-Based Volume Estimation -->
     <div class="section">
       <h2>Option B: Image-Based Volume Estimation</h2>
       <input type="file" id="uploadImage" accept="image/*">
@@ -95,7 +88,7 @@
       <div id="imageOutput"></div>
     </div>
 
-    <!-- Option C -->
+    <!-- Option C: Weight-Based Water Displacement -->
     <div class="section">
       <h2>Option C: Weight-Based Water Displacement</h2>
       <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)">
@@ -115,12 +108,62 @@
     </div>
   </div>
 
+  <!-- OpenCV.js -->
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+
   <script>
-    function start3DScan() {
-      document.getElementById("scanResult").innerText =
-        "3D scanning will be integrated using WebXR/WebAR. Currently not available in all browsers.";
+    // WebXR AR Support Check
+    async function checkWebXRSupport() {
+      if (!navigator.xr) {
+        alert("WebXR is not supported on this browser.");
+        return false;
+      }
+
+      const isSupported = await navigator.xr.isSessionSupported("immersive-ar");
+      if (isSupported) {
+        alert("WebXR AR is supported on this device.");
+        return true;
+      } else {
+        alert("WebXR AR is not supported on this device.");
+        return false;
+      }
     }
 
+    async function startARSession() {
+      const supported = await checkWebXRSupport();
+      if (!supported) return;
+
+      const xrSession = await navigator.xr.requestSession("immersive-ar", {
+        requiredFeatures: ["hit-test", "anchor"],
+      });
+
+      const xrReferenceSpace = await xrSession.requestReferenceSpace("viewer");
+
+      const gl = document.createElement("canvas").getContext("webgl", { xrCompatible: true });
+      const xrLayer = new XRWebGLLayer(xrSession, gl);
+
+      xrSession.updateRenderState({ baseLayer: xrLayer });
+      xrSession.requestAnimationFrame(onXRFrame);
+
+      document.getElementById("arContainer").appendChild(gl.canvas);
+      xrSession.addEventListener("end", () => {
+        gl.canvas.remove();
+      });
+    }
+
+    function onXRFrame(time, xrFrame) {
+      const xrSession = xrFrame.session;
+      const xrRefSpace = xrSession.requestReferenceSpace("viewer");
+      const xrHitTestSource = xrSession.requestHitTestSource({ space: xrRefSpace });
+
+      // Process AR frame and perform hit-testing, etc.
+
+      xrSession.requestAnimationFrame(onXRFrame);
+    }
+
+    // Option B: Image-Based Volume Estimation
     function analyzeImage() {
       const fileInput = document.getElementById("uploadImage");
       if (fileInput.files.length === 0) {
@@ -141,6 +184,7 @@
       reader.readAsDataURL(fileInput.files[0]);
     }
 
+    // Option C: Weight-Based Water Displacement
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
@@ -152,39 +196,24 @@
         return;
       }
 
-      const goldDensity = 19.3;
-      const volume = displacedWater;
+      const volume = displacedWater; // 1g water = 1cm³
       const density = dryWeight / volume;
-      const purityOutOf1000 = Math.min(1000, Math.max(0, Math.round((density / goldDensity) * 1000)));
+      const goldDensity = 19.3;
+      const purityPercent = (density / goldDensity) * 100;
+      const karat = (purityPercent / 100) * 24;
 
-      // Confidence based on deviation and weight
-      let deviation = Math.abs(density - goldDensity);
-      let weightFactor = Math.min(1, dryWeight / 10); // 0–1 scale
-      let deviationFactor = Math.max(0, 1 - deviation / 5); // Penalize deviation
-
-      let confidence = Math.round(deviationFactor * weightFactor * 100);
-
-      // Color transitions
-      let color = "#ff0000";
-      if (confidence > 80) {
-        let green = Math.min(255, 200 + (confidence - 80) * 2.5);
-        color = `rgb(0,${green},0)`;
-      } else if (confidence > 50) {
-        let yellow = Math.min(255, 200 + (confidence - 50) * 2);
-        color = `rgb(${255 - (confidence - 50) * 5},${yellow},0)`;
-      } else {
-        color = `rgb(255,${Math.round(confidence * 2)},0)`;
+      let confidence = 0;
+      if (displacedWater >= 0.3 && dryWeight >= 1) {
+        confidence = Math.min(100, (displacedWater / 0.8) * 100);
       }
 
       resultBox.innerHTML = `
         <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purityOutOf1000} / 1000
+        <b>Estimated Purity:</b> ${purityPercent.toFixed(2)} (${karat.toFixed(2)}K)
       `;
-
-      confidenceBar.style.width = confidence + "%";
-      confidenceBar.style.backgroundColor = color;
-      confidenceBar.textContent = confidence + "%";
+      confidenceBar.style.width = confidence.toFixed(0) + "%";
+      confidenceBar.textContent = confidence.toFixed(0) + "%";
     }
   </script>
 </body>
