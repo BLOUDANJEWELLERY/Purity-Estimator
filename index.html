@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gold Purity Estimator</title>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background-color: #2c2c2c;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #c7a332;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: none;
+      background-color: #3c3c3c;
+      color: white;
+    }
+    button {
+      background-color: #c7a332;
+      cursor: pointer;
+    }
+    .section {
+      margin-top: 30px;
+    }
+    .preview-img {
+      max-width: 100%;
+      margin-top: 10px;
+      border: 1px solid #555;
+    }
+    .result-box {
+      background-color: #444;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .instruction-box {
+      background-color: #333;
+      padding: 15px;
+      margin-top: 15px;
+      border-left: 4px solid #c7a332;
+    }
+  </style>
+  <!-- OpenCV.js -->
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Gold Purity & Volume Estimator</h1>
+
+    <!-- 3D Scanning Placeholder -->
+    <div class="section">
+      <h2>Option A: Advanced 3D Scanning</h2>
+      <button onclick="start3DScan()">Start 3D Scan</button>
+      <div id="scanResult" class="result-box"></div>
+    </div>
+
+    <!-- Image Analysis -->
+    <div class="section">
+      <h2>Option B: Image-Based Volume Estimation</h2>
+      <input type="file" id="uploadImage" accept="image/*">
+      <button onclick="analyzeImage()">Analyze Image</button>
+      <div id="imageOutput"></div>
+    </div>
+
+    <!-- Water Displacement -->
+    <div class="section">
+      <h2>Option C: Weight-Based Water Displacement</h2>
+      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)">
+      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)">
+      <button onclick="calculatePurity()">Calculate Volume & Purity</button>
+      <div id="displacementResult" class="result-box"></div>
+
+      <div class="instruction-box">
+        <b>How to Measure Properly (Important!):</b><br><br>
+        • Weigh the object dry and record the value.<br>
+        • Zero the scale with a water-filled container on it.<br>
+        • Suspend the gold object using thread or fine wire.<br>
+        • Fully submerge it without letting it touch the bottom or sides.<br>
+        • Ensure your hand or holder stays outside the water.<br>
+        • Record the increase in weight shown on the scale — this is the displaced water weight (equals volume in cm³).<br>
+        • Do not submerge your fingers or hand, or let the gold rest inside the container.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function start3DScan() {
+      document.getElementById("scanResult").innerText =
+        "3D scanning will be integrated using WebXR/WebAR. Currently not available in all browsers.";
+    }
+
+    function analyzeImage() {
+      const fileInput = document.getElementById("uploadImage");
+      if (fileInput.files.length === 0) {
+        alert("Please select an image.");
+        return;
+      }
+
+      const img = document.createElement("img");
+      img.classList.add("preview-img");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        img.src = e.target.result;
+        document.getElementById("imageOutput").innerHTML = "";
+        document.getElementById("imageOutput").appendChild(img);
+        alert("Image loaded. Edge detection coming soon...");
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    function calculatePurity() {
+      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
+      const displacedWater = parseFloat(document.getElementById("displacedWater").value);
+
+      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
+        alert("Please enter valid dry weight and displaced water weight.");
+        return;
+      }
+
+      const volume = displacedWater; // Since 1g of water = 1cm³
+      const density = dryWeight / volume;
+      const goldDensity = 19.3;
+      const purityPercent = (density / goldDensity) * 100;
+      const karat = (purityPercent / 100) * 24;
+
+      document.getElementById("displacementResult").innerHTML = `
+        <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
+        <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
+        <b>Estimated Purity:</b> ${purityPercent.toFixed(2)}% (${karat.toFixed(2)}K)
+      `;
+    }
+  </script>
+</body>
+</html>
