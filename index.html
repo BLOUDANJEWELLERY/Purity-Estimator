@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gold Purity Estimator</title>
+  <title>Gold Purity Estimator with AR</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -23,41 +23,14 @@
       text-align: center;
       color: #c7a332;
     }
-    input, button {
-      width: 100%;
+    button {
       padding: 10px;
+      width: 100%;
       margin: 10px 0;
       border-radius: 5px;
-      border: none;
-      background-color: #3c3c3c;
+      background-color: #c7a332;
       color: white;
-    }
-    button {
-      background-color: #c7a332;
       cursor: pointer;
-    }
-    .section {
-      margin-top: 30px;
-    }
-    .result-box {
-      background-color: #444;
-      padding: 15px;
-      border-radius: 5px;
-      margin-top: 10px;
-    }
-    .progress-bar {
-      background-color: #222;
-      border-radius: 5px;
-      overflow: hidden;
-      margin-top: 10px;
-    }
-    .progress {
-      height: 20px;
-      background-color: #c7a332;
-      text-align: center;
-      color: #000;
-      font-weight: bold;
-      line-height: 20px;
     }
     #arContainer {
       width: 100%;
@@ -72,49 +45,28 @@
   <div class="container">
     <h1>Gold Purity & Volume Estimator</h1>
 
-    <!-- Option A: WebXR 3D Scanning -->
+    <!-- Option A: WebXR 3D Scanning with 3D Model Placement -->
     <div class="section">
       <h2>Option A: Advanced 3D Scanning (AR)</h2>
       <button onclick="startARSession()">Start AR Scan</button>
       <div id="arContainer"></div>
-      <div id="arResult" class="result-box"></div>
-    </div>
-
-    <!-- Option B: Image-Based Volume Estimation -->
-    <div class="section">
-      <h2>Option B: Image-Based Volume Estimation</h2>
-      <input type="file" id="uploadImage" accept="image/*">
-      <button onclick="analyzeImage()">Analyze Image</button>
-      <div id="imageOutput"></div>
-    </div>
-
-    <!-- Option C: Weight-Based Water Displacement -->
-    <div class="section">
-      <h2>Option C: Weight-Based Water Displacement</h2>
-      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)">
-      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)">
-      <button onclick="calculatePurity()">Calculate Volume & Purity</button>
-      <div id="displacementResult" class="result-box"></div>
-      <div class="progress-bar"><div id="confidenceBar" class="progress" style="width: 0%">0%</div></div>
-
-      <div class="instruction-box">
-        <b>How to Measure Properly (Important!):</b><br><br>
-        • Weigh the gold object dry.<br>
-        • Place a water-filled container on the scale and zero it.<br>
-        • Suspend the object using a thin thread or wire so it doesn’t touch the container.<br>
-        • Submerge it fully — record the increase in weight shown (that’s the displaced water weight in grams = cm³).<br>
-        • Avoid hand contact with water or letting object rest on container.
-      </div>
     </div>
   </div>
 
-  <!-- OpenCV.js -->
-  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
 
   <script>
-    // WebXR AR Support Check
+    let xrSession = null;
+    let gl = null;
+    let renderer = null;
+    let scene = null;
+    let camera = null;
+    let hitTestSource = null;
+    let hitTestSourceInitialized = false;
+    let model = null;
+
+    // Check if WebXR is supported
     async function checkWebXRSupport() {
       if (!navigator.xr) {
         alert("WebXR is not supported on this browser.");
@@ -131,89 +83,61 @@
       }
     }
 
+    // Start AR session and 3D rendering
     async function startARSession() {
       const supported = await checkWebXRSupport();
       if (!supported) return;
 
-      const xrSession = await navigator.xr.requestSession("immersive-ar", {
-        requiredFeatures: ["hit-test", "anchor"],
+      // Start WebXR AR session
+      xrSession = await navigator.xr.requestSession("immersive-ar", {
+        requiredFeatures: ["hit-test", "anchor"]
       });
 
-      const xrReferenceSpace = await xrSession.requestReferenceSpace("viewer");
-
-      const gl = document.createElement("canvas").getContext("webgl", { xrCompatible: true });
-      const xrLayer = new XRWebGLLayer(xrSession, gl);
-
-      xrSession.updateRenderState({ baseLayer: xrLayer });
-      xrSession.requestAnimationFrame(onXRFrame);
-
+      gl = document.createElement("canvas").getContext("webgl", { xrCompatible: true });
+      renderer = new THREE.WebGLRenderer({ canvas: gl.canvas });
+      renderer.xr.enabled = true;
       document.getElementById("arContainer").appendChild(gl.canvas);
-      xrSession.addEventListener("end", () => {
-        gl.canvas.remove();
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 0, 0);
+      
+      const loader = new THREE.GLTFLoader();
+      loader.load('your-3d-model.glb', (gltf) => {
+        model = gltf.scene;
+        model.scale.set(0.1, 0.1, 0.1); // Scale the model as needed
+        scene.add(model);
       });
-    }
 
-    function onXRFrame(time, xrFrame) {
-      const xrSession = xrFrame.session;
-      const xrRefSpace = xrSession.requestReferenceSpace("viewer");
-      const xrHitTestSource = xrSession.requestHitTestSource({ space: xrRefSpace });
-
-      // Process AR frame and perform hit-testing, etc.
-
+      xrSession.updateRenderState({ baseLayer: new XRWebGLLayer(xrSession, gl) });
+      const referenceSpace = await xrSession.requestReferenceSpace("viewer");
       xrSession.requestAnimationFrame(onXRFrame);
+
+      // Hit-test setup
+      if (!hitTestSourceInitialized) {
+        xrSession.requestHitTestSource({ space: referenceSpace }).then((source) => {
+          hitTestSource = source;
+          hitTestSourceInitialized = true;
+        });
+      }
     }
 
-    // Option B: Image-Based Volume Estimation
-    function analyzeImage() {
-      const fileInput = document.getElementById("uploadImage");
-      if (fileInput.files.length === 0) {
-        alert("Please select an image.");
-        return;
+    // Animation loop for XR frame
+    async function onXRFrame(time, xrFrame) {
+      const xrSession = xrFrame.session;
+      const referenceSpace = await xrSession.requestReferenceSpace("viewer");
+
+      const hitTestResults = xrFrame.getHitTestResults(hitTestSource);
+
+      if (hitTestResults.length > 0) {
+        const hitPose = hitTestResults[0].getPose(referenceSpace);
+        if (model) {
+          model.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+        }
       }
 
-      const img = document.createElement("img");
-      img.classList.add("preview-img");
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        img.src = e.target.result;
-        document.getElementById("imageOutput").innerHTML = "";
-        document.getElementById("imageOutput").appendChild(img);
-        alert("Image loaded. Edge detection coming soon...");
-      };
-      reader.readAsDataURL(fileInput.files[0]);
-    }
-
-    // Option C: Weight-Based Water Displacement
-    function calculatePurity() {
-      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
-      const displacedWater = parseFloat(document.getElementById("displacedWater").value);
-      const resultBox = document.getElementById("displacementResult");
-      const confidenceBar = document.getElementById("confidenceBar");
-
-      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
-        alert("Please enter valid dry weight and displaced water weight.");
-        return;
-      }
-
-      const volume = displacedWater; // 1g water = 1cm³
-      const density = dryWeight / volume;
-      const goldDensity = 19.3;
-      const purityPercent = (density / goldDensity) * 100;
-      const karat = (purityPercent / 100) * 24;
-
-      let confidence = 0;
-      if (displacedWater >= 0.3 && dryWeight >= 1) {
-        confidence = Math.min(100, (displacedWater / 0.8) * 100);
-      }
-
-      resultBox.innerHTML = `
-        <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
-        <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purityPercent.toFixed(2)} (${karat.toFixed(2)}K)
-      `;
-      confidenceBar.style.width = confidence.toFixed(0) + "%";
-      confidenceBar.textContent = confidence.toFixed(0) + "%";
+      renderer.render(scene, camera);
+      xrSession.requestAnimationFrame(onXRFrame);
     }
   </script>
 </body>
