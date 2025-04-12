@@ -1,96 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>Gold Purity Estimator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      background-color: #111;
+      background-color: #121212;
       color: #c7a332;
       font-family: sans-serif;
-      max-width: 400px;
-      margin: 2rem auto;
-      padding: 1rem;
-      border: 1px solid #c7a332;
-      border-radius: 10px;
+      padding: 20px;
     }
-
-    label, input, button {
+    label, select, input {
       display: block;
-      width: 100%;
-      margin-bottom: 1rem;
+      margin-top: 10px;
+      font-size: 16px;
     }
-
-    input, button {
-      padding: 0.6rem;
-      background: #222;
-      border: 1px solid #c7a332;
-      color: #c7a332;
-    }
-
     button {
+      margin-top: 20px;
+      background-color: #c7a332;
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
       cursor: pointer;
-      font-weight: bold;
+      border-radius: 5px;
     }
-
-    .result {
-      margin-top: 1.5rem;
-      padding: 1rem;
-      background-color: #1a1a1a;
-      border: 1px dashed #c7a332;
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #c7a332;
+      background: #1e1e1e;
+      border-radius: 6px;
+    }
+    .section {
+      margin-top: 30px;
+      padding: 15px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #1a1a1a;
     }
   </style>
 </head>
 <body>
+
   <h1>Gold Purity Estimator</h1>
-  
-  <label for="weight">Dry Weight (grams):</label>
-  <input type="number" id="weight" step="0.01" />
 
-  <label for="volume">Displaced Water (grams/cm³):</label>
-  <input type="number" id="volume" step="0.01" />
+  <div class="section">
+    <label for="weight">Weight (grams):</label>
+    <input type="number" id="weight" step="0.01" placeholder="e.g. 50">
 
-  <button onclick="calculatePurity()">Estimate Purity</button>
+    <label for="shape">Select Shape:</label>
+    <select id="shape">
+      <option value="ring">Ring</option>
+      <option value="bar">Bar</option>
+      <option value="coin">Coin</option>
+      <option value="chain">Chain</option>
+    </select>
 
-  <div class="result" id="output"></div>
+    <div id="dimensions"></div>
+    <button onclick="estimateManual()">Estimate Purity (Manual)</button>
+  </div>
+
+  <div class="section">
+    <h3>Or Upload Photos (Experimental)</h3>
+    <input type="file" id="photoUpload" accept="image/*" multiple>
+    <button onclick="simulatePhotoScan()">Estimate from Photos</button>
+  </div>
+
+  <div id="result"></div>
 
   <script>
-    function calculatePurity() {
-      const weight = parseFloat(document.getElementById('weight').value);
-      const volume = parseFloat(document.getElementById('volume').value);
-      const output = document.getElementById('output');
+    const dimensionsDiv = document.getElementById("dimensions");
 
-      if (!weight || !volume || volume === 0) {
-        output.innerHTML = 'Please enter valid values.';
+    const shapes = {
+      ring: ['Inner Diameter (cm)', 'Thickness (cm)', 'Width (cm)'],
+      bar: ['Length (cm)', 'Width (cm)', 'Height (cm)'],
+      coin: ['Diameter (cm)', 'Thickness (cm)'],
+      chain: ['Length (cm)', 'Thickness (cm)']
+    };
+
+    document.getElementById("shape").addEventListener("change", renderInputs);
+    renderInputs();
+
+    function renderInputs() {
+      const shape = document.getElementById("shape").value;
+      dimensionsDiv.innerHTML = "";
+      shapes[shape].forEach((label, i) => {
+        dimensionsDiv.innerHTML += `
+          <label>${label}</label>
+          <input type="number" id="dim${i}" step="0.01">
+        `;
+      });
+    }
+
+    function estimateManual() {
+      const weight = parseFloat(document.getElementById("weight").value);
+      const shape = document.getElementById("shape").value;
+      let volume = 0;
+
+      if (shape === "ring") {
+        const d = parseFloat(dim0.value);
+        const t = parseFloat(dim1.value);
+        const w = parseFloat(dim2.value);
+        const outer = d + 2 * t;
+        volume = Math.PI * w * (Math.pow(outer / 2, 2) - Math.pow(d / 2, 2));
+      } else if (shape === "bar") {
+        const l = parseFloat(dim0.value);
+        const w = parseFloat(dim1.value);
+        const h = parseFloat(dim2.value);
+        volume = l * w * h;
+      } else if (shape === "coin") {
+        const d = parseFloat(dim0.value);
+        const t = parseFloat(dim1.value);
+        volume = Math.PI * Math.pow(d / 2, 2) * t;
+      } else if (shape === "chain") {
+        const l = parseFloat(dim0.value);
+        const t = parseFloat(dim1.value);
+        volume = Math.PI * Math.pow(t / 2, 2) * l;
+      }
+
+      showResults(weight, volume);
+    }
+
+    function showResults(weight, volume) {
+      const density = weight / volume;
+      const purity = Math.min((density / 19.32) * 100, 100).toFixed(2);
+      const karat = Math.min((purity / 100) * 24, 24).toFixed(2);
+
+      document.getElementById("result").innerHTML = `
+        <strong>Results:</strong><br>
+        Volume: ${volume.toFixed(2)} cm³<br>
+        Density: ${density.toFixed(2)} g/cm³<br>
+        Purity: ${purity}%<br>
+        Karat: ${karat}
+      `;
+    }
+
+    function simulatePhotoScan() {
+      const files = document.getElementById("photoUpload").files;
+      if (files.length < 3) {
+        alert("Upload at least 3 photos from different angles.");
         return;
       }
-
-      const density = weight / volume;
-      let karat = '';
-      let percent = '';
-      
-      if (density >= 19.0) {
-        karat = '24k';
-        percent = '99.9%';
-      } else if (density >= 17.7) {
-        karat = '22k';
-        percent = '91.6%';
-      } else if (density >= 15.5) {
-        karat = '18k';
-        percent = '75%';
-      } else if (density >= 13.5) {
-        karat = '14k';
-        percent = '58.5%';
-      } else {
-        karat = 'Below 14k';
-        percent = '<58%';
-      }
-
-      output.innerHTML = `
-        <strong>Estimated Density:</strong> ${density.toFixed(2)} g/cm³<br />
-        <strong>Estimated Purity:</strong> ${karat} (${percent})
-      `;
+      // Simulated volume result for now
+      const simulatedVolume = 3.14; // placeholder
+      const weight = prompt("Enter weight in grams:");
+      if (!weight) return;
+      showResults(parseFloat(weight), simulatedVolume);
     }
   </script>
 </body>
