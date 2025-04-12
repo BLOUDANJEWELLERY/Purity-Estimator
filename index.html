@@ -39,11 +39,6 @@
     .section {
       margin-top: 30px;
     }
-    .preview-img {
-      max-width: 100%;
-      margin-top: 10px;
-      border: 1px solid #555;
-    }
     .result-box {
       background-color: #444;
       padding: 15px;
@@ -65,9 +60,10 @@
     .progress {
       height: 20px;
       text-align: center;
+      color: #000;
       font-weight: bold;
       line-height: 20px;
-      transition: width 0.4s ease, background-color 0.4s ease;
+      transition: width 0.3s ease, background-color 0.3s ease;
     }
   </style>
 </head>
@@ -75,22 +71,6 @@
   <div class="container">
     <h1>Gold Purity & Volume Estimator</h1>
 
-    <!-- Option A -->
-    <div class="section">
-      <h2>Option A: Advanced 3D Scanning</h2>
-      <button onclick="start3DScan()">Start 3D Scan</button>
-      <div id="scanResult" class="result-box"></div>
-    </div>
-
-    <!-- Option B -->
-    <div class="section">
-      <h2>Option B: Image-Based Volume Estimation</h2>
-      <input type="file" id="uploadImage" accept="image/*">
-      <button onclick="analyzeImage()">Analyze Image</button>
-      <div id="imageOutput"></div>
-    </div>
-
-    <!-- Option C -->
     <div class="section">
       <h2>Option C: Weight-Based Water Displacement</h2>
       <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)">
@@ -111,31 +91,6 @@
   </div>
 
   <script>
-    function start3DScan() {
-      document.getElementById("scanResult").innerText =
-        "3D scanning will be integrated using WebXR/WebAR. Currently not available in all browsers.";
-    }
-
-    function analyzeImage() {
-      const fileInput = document.getElementById("uploadImage");
-      if (fileInput.files.length === 0) {
-        alert("Please select an image.");
-        return;
-      }
-
-      const img = document.createElement("img");
-      img.classList.add("preview-img");
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        img.src = e.target.result;
-        document.getElementById("imageOutput").innerHTML = "";
-        document.getElementById("imageOutput").appendChild(img);
-        alert("Image loaded. Edge detection coming soon...");
-      };
-      reader.readAsDataURL(fileInput.files[0]);
-    }
-
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
@@ -147,33 +102,39 @@
         return;
       }
 
+      const goldDensity = 19.3;
       const volume = displacedWater;
       const density = dryWeight / volume;
-      const goldDensity = 19.3;
-      const purity = Math.min((density / goldDensity) * 1000, 1000); // cap at 1000
-      const karat = (purity / 1000) * 24;
+      const purityOutOf1000 = Math.min(1000, Math.max(0, Math.round((density / goldDensity) * 1000)));
 
-      // Confidence based on deviation from real gold (ideal density)
-      const densityDeviation = Math.abs(goldDensity - density);
-      let confidence = 100 - (densityDeviation * 100 / goldDensity); // scaled
+      // Confidence calculation
+      let deviation = Math.abs(density - goldDensity);
+      let weightFactor = Math.min(1, dryWeight / 10); // 0 to 1 for 0–10g
+      let deviationFactor = Math.max(0, 1 - deviation / 5); // More deviation = lower confidence
 
-      confidence = Math.max(0, Math.min(100, confidence)); // clamp between 0–100
+      let confidence = Math.round(deviationFactor * weightFactor * 100);
 
-      let barColor = "#ff3333"; // red (low)
-      if (confidence > 90) barColor = "#00cc66"; // green
-      else if (confidence > 75) barColor = "#88cc00"; // light green
-      else if (confidence > 50) barColor = "#ffcc00"; // yellow
-      else if (confidence > 30) barColor = "#ff9933"; // orange
+      // Color transition from red to green
+      let color = "#ff0000"; // Default red
+      if (confidence > 80) {
+        let green = Math.min(255, 200 + (confidence - 80) * 2.5);
+        color = `rgb(0,${green},0)`;
+      } else if (confidence > 50) {
+        let yellow = Math.min(255, 200 + (confidence - 50) * 2);
+        color = `rgb(${255 - (confidence - 50) * 5},${yellow},0)`;
+      } else {
+        color = `rgb(255,${Math.round(confidence * 2)},0)`;
+      }
 
       resultBox.innerHTML = `
         <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${Math.round(purity)} / 1000 (${karat.toFixed(2)}K)
+        <b>Estimated Purity:</b> ${purityOutOf1000} / 1000
       `;
 
-      confidenceBar.style.width = confidence.toFixed(0) + "%";
-      confidenceBar.style.backgroundColor = barColor;
-      confidenceBar.textContent = confidence.toFixed(0) + "%";
+      confidenceBar.style.width = confidence + "%";
+      confidenceBar.style.backgroundColor = color;
+      confidenceBar.textContent = confidence + "%";
     }
   </script>
 </body>
