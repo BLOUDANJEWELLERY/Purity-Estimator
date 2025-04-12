@@ -1,140 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gold Purity Estimator</title>
-  <style>
-    body {
-      background-color: #1a1a1a;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background-color: #2c2c2c;
-      padding: 20px;
-      border-radius: 10px;
-    }
-    h1, h2 {
-      text-align: center;
-      color: #c7a332;
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      border: none;
-      background-color: #3c3c3c;
-      color: white;
-    }
-    button {
-      background-color: #c7a332;
-      cursor: pointer;
-    }
-    .section {
-      margin-top: 30px;
-    }
-    .preview-img {
-      max-width: 100%;
-      margin-top: 10px;
-      border: 1px solid #555;
-    }
-    .result-box {
-      background-color: #444;
-      padding: 15px;
-      border-radius: 5px;
-      margin-top: 10px;
-    }
-  </style>
-  <!-- OpenCV.js -->
-  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Purity Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #c7a332;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #c7a332;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #a58429;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .result p {
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Gold Purity & Volume Estimator</h1>
 
-    <!-- 3D Scanning Placeholder -->
-    <div class="section">
-      <h2>Option A: Advanced 3D Scanning</h2>
-      <button onclick="start3DScan()">Start 3D Scan</button>
-      <div id="scanResult" class="result-box"></div>
+<div class="container">
+    <h1>Gold Purity Calculator</h1>
+
+    <label for="weight">Dry Weight of Gold (g):</label>
+    <input type="number" id="weight" placeholder="Enter the dry weight of the gold" required>
+
+    <label for="displaced">Displaced Water Weight (g):</label>
+    <input type="number" id="displaced" placeholder="Enter the displaced water weight" required>
+
+    <label for="density">Density of Pure Gold (g/cm³):</label>
+    <input type="number" id="density" value="19.32" step="0.01" placeholder="Density of Pure Gold (default: 19.32)" required>
+
+    <button onclick="calculatePurity()">Calculate Purity</button>
+
+    <div class="result" id="result" style="display: none;">
+        <p><strong>Volume of Gold:</strong> <span id="volume"></span> cm³</p>
+        <p><strong>Density of Gold:</strong> <span id="calculatedDensity"></span> g/cm³</p>
+        <p><strong>Purity:</strong> <span id="purity"></span>%</p>
+        <p><strong>Karat:</strong> <span id="karat"></span>K</p>
     </div>
+</div>
 
-    <!-- Image Analysis -->
-    <div class="section">
-      <h2>Option B: Image-Based Volume Estimation</h2>
-      <input type="file" id="uploadImage" accept="image/*">
-      <button onclick="analyzeImage()">Analyze Image</button>
-      <div id="imageOutput"></div>
-    </div>
+<script>
+    function calculatePurity() {
+        // Get values from input fields
+        let weight = parseFloat(document.getElementById("weight").value);
+        let displacedWeight = parseFloat(document.getElementById("displaced").value);
+        let pureGoldDensity = parseFloat(document.getElementById("density").value);
 
-    <!-- Water Displacement -->
-    <div class="section">
-      <h2>Option C: Water Displacement Method</h2>
-      <input type="number" id="initialLevel" placeholder="Initial Water Level (cm)">
-      <input type="number" id="finalLevel" placeholder="Final Water Level (cm)">
-      <input type="number" id="objectWeight" placeholder="Object Weight (grams)">
-      <input type="number" id="materialDensity" placeholder="Estimated Alloy Density (g/cm³)">
-      <button onclick="calculateDisplacementVolume()">Calculate Volume & Purity</button>
-      <div id="displacementResult" class="result-box"></div>
-    </div>
-  </div>
+        // Calculate volume, density, purity, and karat
+        let volume = displacedWeight; // Displaced water weight equals volume in cm³
+        let calculatedDensity = weight / volume;
+        let purityPercentage = (calculatedDensity / pureGoldDensity) * 100;
+        let karat = (purityPercentage / 100) * 24;
 
-  <script>
-    function start3DScan() {
-      document.getElementById("scanResult").innerText =
-        "3D scanning will be integrated using WebXR/WebAR. Currently not available in all browsers.";
+        // Display results
+        document.getElementById("volume").textContent = volume.toFixed(2);
+        document.getElementById("calculatedDensity").textContent = calculatedDensity.toFixed(2);
+        document.getElementById("purity").textContent = purityPercentage.toFixed(2);
+        document.getElementById("karat").textContent = karat.toFixed(2);
+
+        // Show result section
+        document.getElementById("result").style.display = "block";
     }
+</script>
 
-    function analyzeImage() {
-      const fileInput = document.getElementById("uploadImage");
-      if (fileInput.files.length === 0) {
-        alert("Please select an image.");
-        return;
-      }
-
-      const img = document.createElement("img");
-      img.classList.add("preview-img");
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        img.src = e.target.result;
-        document.getElementById("imageOutput").innerHTML = "";
-        document.getElementById("imageOutput").appendChild(img);
-        alert("Image loaded. Edge detection coming soon...");
-      };
-      reader.readAsDataURL(fileInput.files[0]);
-    }
-
-    function calculateDisplacementVolume() {
-      const initial = parseFloat(document.getElementById("initialLevel").value);
-      const final = parseFloat(document.getElementById("finalLevel").value);
-      const weight = parseFloat(document.getElementById("objectWeight").value);
-      const densityInput = parseFloat(document.getElementById("materialDensity").value);
-
-      if (isNaN(initial) || isNaN(final) || isNaN(weight) || isNaN(densityInput)) {
-        alert("Please fill in all values correctly.");
-        return;
-      }
-
-      const volume = final - initial;
-      const calculatedDensity = weight / volume;
-      const purityPercent = (calculatedDensity / densityInput) * 100;
-      const karat = (purityPercent / 100) * 24;
-
-      document.getElementById("displacementResult").innerHTML = `
-        <b>Volume Displaced:</b> ${volume.toFixed(2)} cm³<br>
-        <b>Calculated Density:</b> ${calculatedDensity.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purityPercent.toFixed(2)}% (${karat.toFixed(2)}K)
-      `;
-    }
-  </script>
 </body>
 </html>
