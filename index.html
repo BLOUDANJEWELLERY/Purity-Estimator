@@ -95,10 +95,10 @@
 
     <!-- Result Section -->
     <div class="result" id="result" style="display: none;">
-        <p><strong>Volume of Gold:</strong> <span id="volume"></span> cm³</p>
-        <p><strong>Density of Gold:</strong> <span id="calculatedDensity"></span> g/cm³</p>
         <p><strong>Purity:</strong> <span id="purity"></span>%</p>
         <p><strong>Karat:</strong> <span id="karat"></span>K</p>
+        <p><strong>Volume of Gold:</strong> <span id="volume"></span> cm³</p>
+        <p><strong>Density of Gold:</strong> 19.32 g/cm³</p>
     </div>
 </div>
 
@@ -153,21 +153,17 @@
             return;
         }
 
-        // Calculate volume from displaced water
-        const volume = displacedWater; // In cm³
-
-        // Density of gold (g/cm³)
-        const densityGold = 19.32; // Average density of gold
+        // Volume is directly equal to displaced water weight (in cm³)
+        const volume = displacedWater;
 
         // Calculate purity and karat based on weight displacement
         const purity = (displacedWater / dryWeight) * 100;
         const karat = (purity / 100) * 24;
 
         // Display results
-        document.getElementById('volume').innerText = volume.toFixed(2);
-        document.getElementById('calculatedDensity').innerText = densityGold;
         document.getElementById('purity').innerText = purity.toFixed(2);
         document.getElementById('karat').innerText = karat.toFixed(2);
+        document.getElementById('volume').innerText = volume.toFixed(2);
 
         document.getElementById('result').style.display = 'block';
     }
