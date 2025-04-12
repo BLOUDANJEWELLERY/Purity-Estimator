@@ -75,24 +75,24 @@
       <div id="imageOutput"></div>
     </div>
 
-    <!-- Water Displacement -->
+    <!-- Weight-Based Displacement -->
     <div class="section">
-      <h2>Option C: Water Displacement Method</h2>
-      <input type="number" id="initialLevel" placeholder="Initial Water Level (cm)">
-      <input type="number" id="finalLevel" placeholder="Final Water Level (cm)">
-      <input type="number" id="objectWeight" placeholder="Object Weight (grams)">
-      <input type="number" id="materialDensity" placeholder="Estimated Alloy Density (g/cm³)">
-      <button onclick="calculateDisplacementVolume()">Calculate Volume & Purity</button>
+      <h2>Option C: Weight-Based Displacement Method</h2>
+      <input type="number" id="dryWeight" placeholder="Dry Weight of Object (grams)">
+      <input type="number" id="displacedWaterWeight" placeholder="Displaced Water Weight (grams)">
+      <button onclick="calculatePurityAndVolume()">Calculate Volume & Purity</button>
       <div id="displacementResult" class="result-box"></div>
     </div>
   </div>
 
   <script>
+    // Option A: 3D Scanning
     function start3DScan() {
       document.getElementById("scanResult").innerText =
         "3D scanning will be integrated using WebXR/WebAR. Currently not available in all browsers.";
     }
 
+    // Option B: Image Analysis
     function analyzeImage() {
       const fileInput = document.getElementById("uploadImage");
       if (fileInput.files.length === 0) {
@@ -113,26 +113,40 @@
       reader.readAsDataURL(fileInput.files[0]);
     }
 
-    function calculateDisplacementVolume() {
-      const initial = parseFloat(document.getElementById("initialLevel").value);
-      const final = parseFloat(document.getElementById("finalLevel").value);
-      const weight = parseFloat(document.getElementById("objectWeight").value);
-      const densityInput = parseFloat(document.getElementById("materialDensity").value);
+    // Option C: Weight-Based Displacement Method
+    function calculatePurityAndVolume() {
+      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
+      const displacedWaterWeight = parseFloat(document.getElementById("displacedWaterWeight").value);
 
-      if (isNaN(initial) || isNaN(final) || isNaN(weight) || isNaN(densityInput)) {
-        alert("Please fill in all values correctly.");
+      if (isNaN(dryWeight) || isNaN(displacedWaterWeight)) {
+        alert("Please fill in both values correctly.");
         return;
       }
 
-      const volume = final - initial;
-      const calculatedDensity = weight / volume;
-      const purityPercent = (calculatedDensity / densityInput) * 100;
-      const karat = (purityPercent / 100) * 24;
+      // Volume = Displaced Water Weight (in grams)
+      const volume = displacedWaterWeight;  // In cm³ (since 1g of displaced water = 1cm³)
+      
+      // Calculate purity (using the ratio of gold density to alloy density)
+      // For simplicity, we will assume the alloy density is provided or set at a typical value (e.g., 19.3 g/cm³ for pure gold).
+      const goldDensity = 19.3;  // Pure gold density in g/cm³
+      const alloyDensity = parseFloat(prompt("Enter the alloy density in g/cm³ (e.g., for 21K gold, use 17.6):", "17.6"));
+
+      if (isNaN(alloyDensity)) {
+        alert("Invalid alloy density. Please enter a valid value.");
+        return;
+      }
+
+      // Calculate the purity percentage using the formula:
+      // Purity = (Displaced Water Weight / Dry Weight) * 100 (for weight-based purity estimation)
+      const purity = (displacedWaterWeight / dryWeight) * 100;
+
+      // Estimate karat: (Purity / 100) * 24
+      const karat = (purity / 100) * 24;
 
       document.getElementById("displacementResult").innerHTML = `
-        <b>Volume Displaced:</b> ${volume.toFixed(2)} cm³<br>
-        <b>Calculated Density:</b> ${calculatedDensity.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purityPercent.toFixed(2)}% (${karat.toFixed(2)}K)
+        <b>Displaced Water Volume:</b> ${volume.toFixed(2)} cm³<br>
+        <b>Estimated Purity:</b> ${purity.toFixed(2)}% (${karat.toFixed(2)}K)<br>
+        <b>Alloy Density:</b> ${alloyDensity} g/cm³
       `;
     }
   </script>
