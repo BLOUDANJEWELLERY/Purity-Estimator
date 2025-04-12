@@ -1,176 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gold Purity Calculator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin: auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #c7a332;
-        }
-        button {
-            background-color: #c7a332;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #a58429;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
-        .result p {
-            margin: 10px 0;
-        }
-        .scan-section, .weight-section, .image-section {
-            margin: 20px 0;
-        }
-        .option-container {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 20px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gold Purity Estimator</title>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background-color: #2c2c2c;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #c7a332;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: none;
+      background-color: #3c3c3c;
+      color: white;
+    }
+    button {
+      background-color: #c7a332;
+      cursor: pointer;
+    }
+    .section {
+      margin-top: 30px;
+    }
+    .preview-img {
+      max-width: 100%;
+      margin-top: 10px;
+      border: 1px solid #555;
+    }
+    .result-box {
+      background-color: #444;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+  </style>
+  <!-- OpenCV.js -->
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
 </head>
 <body>
+  <div class="container">
+    <h1>Gold Purity & Volume Estimator</h1>
 
-<div class="container">
-    <h1>Gold Purity Calculator</h1>
-
-    <!-- Option Selection -->
-    <div class="option-container">
-        <button onclick="chooseOption('A')">Advanced 3D Scanning (Option A)</button>
-        <button onclick="chooseOption('B')">Image-based Estimation (Option B)</button>
-        <button onclick="chooseOption('C')">Weight-based Displacement (Option C)</button>
+    <!-- 3D Scanning Placeholder -->
+    <div class="section">
+      <h2>Option A: Advanced 3D Scanning</h2>
+      <button onclick="start3DScan()">Start 3D Scan</button>
+      <div id="scanResult" class="result-box"></div>
     </div>
 
-    <!-- Option A: 3D Scanning -->
-    <div class="scan-section" id="scan-section" style="display: none;">
-        <button onclick="startARSession()">Start 3D Scan</button>
-        <p>Use your camera to scan the object in 3D. This will capture its shape for further analysis.</p>
+    <!-- Image Analysis -->
+    <div class="section">
+      <h2>Option B: Image-Based Volume Estimation</h2>
+      <input type="file" id="uploadImage" accept="image/*">
+      <button onclick="analyzeImage()">Analyze Image</button>
+      <div id="imageOutput"></div>
     </div>
 
-    <!-- Option B: Image-based Volume Estimation -->
-    <div class="image-section" id="image-section" style="display: none;">
-        <button onclick="captureImage()">Capture Image</button>
-        <input type="file" id="imageInput" style="display: none;" accept="image/*">
-        <p>Upload an image of the object to calculate its volume.</p>
+    <!-- Water Displacement -->
+    <div class="section">
+      <h2>Option C: Water Displacement Method</h2>
+      <input type="number" id="initialLevel" placeholder="Initial Water Level (cm)">
+      <input type="number" id="finalLevel" placeholder="Final Water Level (cm)">
+      <input type="number" id="objectWeight" placeholder="Object Weight (grams)">
+      <input type="number" id="materialDensity" placeholder="Estimated Alloy Density (g/cm³)">
+      <button onclick="calculateDisplacementVolume()">Calculate Volume & Purity</button>
+      <div id="displacementResult" class="result-box"></div>
     </div>
+  </div>
 
-    <!-- Option C: Weight-based Displacement -->
-    <div class="weight-section" id="weight-section" style="display: none;">
-        <label for="dryWeight">Dry Weight (g): </label>
-        <input type="number" id="dryWeight" placeholder="Enter dry weight">
-        <br>
-        <label for="displacedWater">Displaced Water Weight (g): </label>
-        <input type="number" id="displacedWater" placeholder="Enter displaced water weight">
-        <br>
-        <button onclick="calculatePurity()">Calculate Purity</button>
-    </div>
-
-    <!-- Result Section -->
-    <div class="result" id="result" style="display: none;">
-        <p><strong>Purity:</strong> <span id="purity"></span>%</p>
-        <p><strong>Karat:</strong> <span id="karat"></span>K</p>
-        <p><strong>Volume of Gold:</strong> <span id="volume"></span> cm³</p>
-        <p><strong>Density of Gold:</strong> 19.32 g/cm³</p>
-    </div>
-</div>
-
-<script>
-    // Store the selected option
-    let selectedOption = '';
-
-    // Choose option A, B, or C
-    function chooseOption(option) {
-        selectedOption = option;
-        document.getElementById('scan-section').style.display = 'none';
-        document.getElementById('image-section').style.display = 'none';
-        document.getElementById('weight-section').style.display = 'none';
-        document.getElementById('result').style.display = 'none';
-
-        if (option === 'A') {
-            document.getElementById('scan-section').style.display = 'block';
-        } else if (option === 'B') {
-            document.getElementById('image-section').style.display = 'block';
-        } else if (option === 'C') {
-            document.getElementById('weight-section').style.display = 'block';
-        }
+  <script>
+    function start3DScan() {
+      document.getElementById("scanResult").innerText =
+        "3D scanning will be integrated using WebXR/WebAR. Currently not available in all browsers.";
     }
 
-    // Option A: Start 3D AR Scan (WebXR or ARKit)
-    function startARSession() {
-        // AR session code would go here (for iPhone Pro, Android using ARKit or ARCore)
-        alert("Start AR scan for 3D object scanning (not implemented in demo).");
+    function analyzeImage() {
+      const fileInput = document.getElementById("uploadImage");
+      if (fileInput.files.length === 0) {
+        alert("Please select an image.");
+        return;
+      }
+
+      const img = document.createElement("img");
+      img.classList.add("preview-img");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        img.src = e.target.result;
+        document.getElementById("imageOutput").innerHTML = "";
+        document.getElementById("imageOutput").appendChild(img);
+        alert("Image loaded. Edge detection coming soon...");
+      };
+      reader.readAsDataURL(fileInput.files[0]);
     }
 
-    // Option B: Capture Image for Volume Estimation
-    function captureImage() {
-        document.getElementById('imageInput').click();
+    function calculateDisplacementVolume() {
+      const initial = parseFloat(document.getElementById("initialLevel").value);
+      const final = parseFloat(document.getElementById("finalLevel").value);
+      const weight = parseFloat(document.getElementById("objectWeight").value);
+      const densityInput = parseFloat(document.getElementById("materialDensity").value);
+
+      if (isNaN(initial) || isNaN(final) || isNaN(weight) || isNaN(densityInput)) {
+        alert("Please fill in all values correctly.");
+        return;
+      }
+
+      const volume = final - initial;
+      const calculatedDensity = weight / volume;
+      const purityPercent = (calculatedDensity / densityInput) * 100;
+      const karat = (purityPercent / 100) * 24;
+
+      document.getElementById("displacementResult").innerHTML = `
+        <b>Volume Displaced:</b> ${volume.toFixed(2)} cm³<br>
+        <b>Calculated Density:</b> ${calculatedDensity.toFixed(2)} g/cm³<br>
+        <b>Estimated Purity:</b> ${purityPercent.toFixed(2)}% (${karat.toFixed(2)}K)
+      `;
     }
-
-    // Handle image input for volume estimation (for Option B)
-    document.getElementById('imageInput').addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            alert("Image captured. Use OpenCV.js or TensorFlow.js to estimate volume.");
-            // Further implementation with OpenCV.js to process the image
-        }
-    });
-
-    // Option C: Weight-based Displacement Calculation
-    function calculatePurity() {
-        const dryWeight = parseFloat(document.getElementById('dryWeight').value);
-        const displacedWater = parseFloat(document.getElementById('displacedWater').value);
-
-        if (isNaN(dryWeight) || isNaN(displacedWater) || dryWeight <= 0 || displacedWater <= 0) {
-            alert("Please enter valid values.");
-            return;
-        }
-
-        // Volume is directly equal to displaced water weight (in cm³)
-        const volume = displacedWater;
-
-        // Calculate purity and karat based on weight displacement
-        const purity = (displacedWater / dryWeight) * 100;
-        const karat = (purity / 100) * 24;
-
-        // Display results
-        document.getElementById('purity').innerText = purity.toFixed(2);
-        document.getElementById('karat').innerText = karat.toFixed(2);
-        document.getElementById('volume').innerText = volume.toFixed(2);
-
-        document.getElementById('result').style.display = 'block';
-    }
-
-    // Initial Option (default to Weight-based displacement method)
-    chooseOption('C');
-</script>
-
+  </script>
 </body>
 </html>
