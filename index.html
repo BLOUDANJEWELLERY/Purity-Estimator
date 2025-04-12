@@ -65,12 +65,37 @@
       line-height: 20px;
       transition: width 0.3s ease, background-color 0.3s ease;
     }
+    .preview-img {
+      max-width: 100%;
+      margin-top: 10px;
+      border: 1px solid #555;
+    }
   </style>
+  <!-- OpenCV.js -->
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
 </head>
 <body>
   <div class="container">
     <h1>Gold Purity & Volume Estimator</h1>
 
+    <!-- Option A -->
+    <div class="section">
+      <h2>Option A: Advanced 3D Scanning</h2>
+      <button onclick="start3DScan()">Start 3D Scan</button>
+      <div id="scanResult" class="result-box"></div>
+    </div>
+
+    <!-- Option B -->
+    <div class="section">
+      <h2>Option B: Image-Based Volume Estimation</h2>
+      <input type="file" id="uploadImage" accept="image/*">
+      <button onclick="analyzeImage()">Analyze Image</button>
+      <div id="imageOutput"></div>
+    </div>
+
+    <!-- Option C -->
     <div class="section">
       <h2>Option C: Weight-Based Water Displacement</h2>
       <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)">
@@ -91,6 +116,31 @@
   </div>
 
   <script>
+    function start3DScan() {
+      document.getElementById("scanResult").innerText =
+        "3D scanning will be integrated using WebXR/WebAR. Currently not available in all browsers.";
+    }
+
+    function analyzeImage() {
+      const fileInput = document.getElementById("uploadImage");
+      if (fileInput.files.length === 0) {
+        alert("Please select an image.");
+        return;
+      }
+
+      const img = document.createElement("img");
+      img.classList.add("preview-img");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        img.src = e.target.result;
+        document.getElementById("imageOutput").innerHTML = "";
+        document.getElementById("imageOutput").appendChild(img);
+        alert("Image loaded. Edge detection coming soon...");
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
@@ -107,15 +157,15 @@
       const density = dryWeight / volume;
       const purityOutOf1000 = Math.min(1000, Math.max(0, Math.round((density / goldDensity) * 1000)));
 
-      // Confidence calculation
+      // Confidence based on deviation and weight
       let deviation = Math.abs(density - goldDensity);
-      let weightFactor = Math.min(1, dryWeight / 10); // 0 to 1 for 0–10g
-      let deviationFactor = Math.max(0, 1 - deviation / 5); // More deviation = lower confidence
+      let weightFactor = Math.min(1, dryWeight / 10); // 0–1 scale
+      let deviationFactor = Math.max(0, 1 - deviation / 5); // Penalize deviation
 
       let confidence = Math.round(deviationFactor * weightFactor * 100);
 
-      // Color transition from red to green
-      let color = "#ff0000"; // Default red
+      // Color transitions
+      let color = "#ff0000";
       if (confidence > 80) {
         let green = Math.min(255, 200 + (confidence - 80) * 2.5);
         color = `rgb(0,${green},0)`;
