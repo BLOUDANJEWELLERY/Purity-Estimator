@@ -12,7 +12,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 600px;
+            max-width: 800px;
             margin: auto;
             padding: 20px;
             background-color: #fff;
@@ -23,19 +23,6 @@
             text-align: center;
             color: #c7a332;
         }
-        label {
-            font-weight: bold;
-            margin-bottom: 10px;
-            display: block;
-        }
-        input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
-        }
         button {
             background-color: #c7a332;
             color: white;
@@ -45,6 +32,7 @@
             font-size: 16px;
             cursor: pointer;
             width: 100%;
+            margin-top: 10px;
         }
         button:hover {
             background-color: #a58429;
@@ -59,6 +47,14 @@
         .result p {
             margin: 10px 0;
         }
+        .scan-section, .weight-section, .image-section {
+            margin: 20px 0;
+        }
+        .option-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -66,17 +62,38 @@
 <div class="container">
     <h1>Gold Purity Calculator</h1>
 
-    <label for="weight">Dry Weight of Gold (g):</label>
-    <input type="number" id="weight" placeholder="Enter the dry weight of the gold" required>
+    <!-- Option Selection -->
+    <div class="option-container">
+        <button onclick="chooseOption('A')">Advanced 3D Scanning (Option A)</button>
+        <button onclick="chooseOption('B')">Image-based Estimation (Option B)</button>
+        <button onclick="chooseOption('C')">Weight-based Displacement (Option C)</button>
+    </div>
 
-    <label for="displaced">Displaced Water Weight (g):</label>
-    <input type="number" id="displaced" placeholder="Enter the displaced water weight" required>
+    <!-- Option A: 3D Scanning -->
+    <div class="scan-section" id="scan-section" style="display: none;">
+        <button onclick="startARSession()">Start 3D Scan</button>
+        <p>Use your camera to scan the object in 3D. This will capture its shape for further analysis.</p>
+    </div>
 
-    <label for="density">Density of Pure Gold (g/cm³):</label>
-    <input type="number" id="density" value="19.32" step="0.01" placeholder="Density of Pure Gold (default: 19.32)" required>
+    <!-- Option B: Image-based Volume Estimation -->
+    <div class="image-section" id="image-section" style="display: none;">
+        <button onclick="captureImage()">Capture Image</button>
+        <input type="file" id="imageInput" style="display: none;" accept="image/*">
+        <p>Upload an image of the object to calculate its volume.</p>
+    </div>
 
-    <button onclick="calculatePurity()">Calculate Purity</button>
+    <!-- Option C: Weight-based Displacement -->
+    <div class="weight-section" id="weight-section" style="display: none;">
+        <label for="dryWeight">Dry Weight (g): </label>
+        <input type="number" id="dryWeight" placeholder="Enter dry weight">
+        <br>
+        <label for="displacedWater">Displaced Water Weight (g): </label>
+        <input type="number" id="displacedWater" placeholder="Enter displaced water weight">
+        <br>
+        <button onclick="calculatePurity()">Calculate Purity</button>
+    </div>
 
+    <!-- Result Section -->
     <div class="result" id="result" style="display: none;">
         <p><strong>Volume of Gold:</strong> <span id="volume"></span> cm³</p>
         <p><strong>Density of Gold:</strong> <span id="calculatedDensity"></span> g/cm³</p>
@@ -86,27 +103,77 @@
 </div>
 
 <script>
-    function calculatePurity() {
-        // Get values from input fields
-        let weight = parseFloat(document.getElementById("weight").value);
-        let displacedWeight = parseFloat(document.getElementById("displaced").value);
-        let pureGoldDensity = parseFloat(document.getElementById("density").value);
+    // Store the selected option
+    let selectedOption = '';
 
-        // Calculate volume, density, purity, and karat
-        let volume = displacedWeight; // Displaced water weight equals volume in cm³
-        let calculatedDensity = weight / volume;
-        let purityPercentage = (calculatedDensity / pureGoldDensity) * 100;
-        let karat = (purityPercentage / 100) * 24;
+    // Choose option A, B, or C
+    function chooseOption(option) {
+        selectedOption = option;
+        document.getElementById('scan-section').style.display = 'none';
+        document.getElementById('image-section').style.display = 'none';
+        document.getElementById('weight-section').style.display = 'none';
+        document.getElementById('result').style.display = 'none';
+
+        if (option === 'A') {
+            document.getElementById('scan-section').style.display = 'block';
+        } else if (option === 'B') {
+            document.getElementById('image-section').style.display = 'block';
+        } else if (option === 'C') {
+            document.getElementById('weight-section').style.display = 'block';
+        }
+    }
+
+    // Option A: Start 3D AR Scan (WebXR or ARKit)
+    function startARSession() {
+        // AR session code would go here (for iPhone Pro, Android using ARKit or ARCore)
+        alert("Start AR scan for 3D object scanning (not implemented in demo).");
+    }
+
+    // Option B: Capture Image for Volume Estimation
+    function captureImage() {
+        document.getElementById('imageInput').click();
+    }
+
+    // Handle image input for volume estimation (for Option B)
+    document.getElementById('imageInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            alert("Image captured. Use OpenCV.js or TensorFlow.js to estimate volume.");
+            // Further implementation with OpenCV.js to process the image
+        }
+    });
+
+    // Option C: Weight-based Displacement Calculation
+    function calculatePurity() {
+        const dryWeight = parseFloat(document.getElementById('dryWeight').value);
+        const displacedWater = parseFloat(document.getElementById('displacedWater').value);
+
+        if (isNaN(dryWeight) || isNaN(displacedWater) || dryWeight <= 0 || displacedWater <= 0) {
+            alert("Please enter valid values.");
+            return;
+        }
+
+        // Calculate volume from displaced water
+        const volume = displacedWater; // In cm³
+
+        // Density of gold (g/cm³)
+        const densityGold = 19.32; // Average density of gold
+
+        // Calculate purity and karat based on weight displacement
+        const purity = (displacedWater / dryWeight) * 100;
+        const karat = (purity / 100) * 24;
 
         // Display results
-        document.getElementById("volume").textContent = volume.toFixed(2);
-        document.getElementById("calculatedDensity").textContent = calculatedDensity.toFixed(2);
-        document.getElementById("purity").textContent = purityPercentage.toFixed(2);
-        document.getElementById("karat").textContent = karat.toFixed(2);
+        document.getElementById('volume').innerText = volume.toFixed(2);
+        document.getElementById('calculatedDensity').innerText = densityGold;
+        document.getElementById('purity').innerText = purity.toFixed(2);
+        document.getElementById('karat').innerText = karat.toFixed(2);
 
-        // Show result section
-        document.getElementById("result").style.display = "block";
+        document.getElementById('result').style.display = 'block';
     }
+
+    // Initial Option (default to Weight-based displacement method)
+    chooseOption('C');
 </script>
 
 </body>
