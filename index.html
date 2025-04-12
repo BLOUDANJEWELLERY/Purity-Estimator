@@ -56,25 +56,21 @@
       margin-top: 15px;
       border-left: 4px solid #c7a332;
     }
-    .progress-bar {
+    .progress-container {
       background-color: #222;
-      border-radius: 5px;
+      border-radius: 10px;
       overflow: hidden;
+      height: 20px;
       margin-top: 10px;
     }
-    .progress {
-      height: 20px;
-      background-color: #c7a332;
+    .progress-bar {
+      height: 100%;
       text-align: center;
-      color: #000;
-      font-weight: bold;
       line-height: 20px;
+      color: #fff;
+      transition: width 0.4s ease;
     }
   </style>
-  <!-- OpenCV.js -->
-  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
 </head>
 <body>
   <div class="container">
@@ -102,15 +98,17 @@
       <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)">
       <button onclick="calculatePurity()">Calculate Volume & Purity</button>
       <div id="displacementResult" class="result-box"></div>
-      <div class="progress-bar"><div id="confidenceBar" class="progress" style="width: 0%">0%</div></div>
-
+      <div class="progress-container">
+        <div id="confidenceBar" class="progress-bar" style="width: 0%">Confidence</div>
+      </div>
       <div class="instruction-box">
         <b>How to Measure Properly (Important!):</b><br><br>
-        • Weigh the gold object dry.<br>
-        • Place a water-filled container on the scale and zero it.<br>
-        • Suspend the object using a thin thread or wire so it doesn’t touch the container.<br>
-        • Submerge it fully — record the increase in weight shown (that’s the displaced water weight in grams = cm³).<br>
-        • Avoid hand contact with water or letting object rest on container.
+        • Weigh the object dry and record the value.<br>
+        • Zero the scale with a water-filled container on it.<br>
+        • Suspend the gold object using thread or fine wire.<br>
+        • Fully submerge it without letting it touch the bottom or sides.<br>
+        • Ensure your hand or holder stays outside the water.<br>
+        • Record the increase in weight shown on the scale — this is the displaced water weight (equals volume in cm³).
       </div>
     </div>
   </div>
@@ -144,32 +142,43 @@
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
-      const resultBox = document.getElementById("displacementResult");
-      const confidenceBar = document.getElementById("confidenceBar");
+      const goldDensity = 19.3;
 
       if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
         alert("Please enter valid dry weight and displaced water weight.");
         return;
       }
 
-      const volume = displacedWater; // 1g water = 1cm³
+      const volume = displacedWater;
       const density = dryWeight / volume;
-      const goldDensity = 19.3;
-      const purityPercent = (density / goldDensity) * 100;
-      const karat = (purityPercent / 100) * 24;
+      const purityRatio = density / goldDensity;
+      const purity = purityRatio * 1000;
+      const karat = (purity / 1000) * 24;
 
+      // Confidence logic
       let confidence = 0;
-      if (displacedWater >= 0.3 && dryWeight >= 1) {
-        confidence = Math.min(100, (displacedWater / 0.8) * 100);
-      }
+      if (dryWeight >= 20) confidence = 100;
+      else if (dryWeight >= 15) confidence = 85;
+      else if (dryWeight >= 10) confidence = 70;
+      else if (dryWeight >= 5) confidence = 50;
+      else confidence = 30;
 
-      resultBox.innerHTML = `
+      // Color logic
+      let color = "#ff0000"; // red
+      if (confidence > 70) color = "#00cc00"; // green
+      else if (confidence > 50) color = "#ffcc00"; // yellow
+      else if (confidence > 40) color = "#ff6600"; // orange-red
+
+      document.getElementById("displacementResult").innerHTML = `
         <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purityPercent.toFixed(2)}% (${karat.toFixed(2)}K)
+        <b>Estimated Purity:</b> ${Math.round(purity)} / 1000 (${karat.toFixed(2)}K)
       `;
-      confidenceBar.style.width = confidence.toFixed(0) + "%";
-      confidenceBar.textContent = confidence.toFixed(0) + "%";
+
+      const confidenceBar = document.getElementById("confidenceBar");
+      confidenceBar.style.width = confidence + "%";
+      confidenceBar.style.backgroundColor = color;
+      confidenceBar.innerText = `Confidence: ${confidence}%`;
     }
   </script>
 </body>
