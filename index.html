@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gold Purity & Volume Estimator</title>
+  <title>Option B: Image-Based Volume Estimation</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -19,11 +19,11 @@
       padding: 20px;
       border-radius: 10px;
     }
-    h1, h2 {
+    h1 {
       text-align: center;
       color: #c7a332;
     }
-    input, button {
+    input, select, button {
       width: 100%;
       padding: 10px;
       margin: 10px 0;
@@ -47,90 +47,81 @@
       border-radius: 5px;
       margin-top: 10px;
     }
+    .helper-ui {
+      background-color: #333;
+      padding: 15px;
+      margin-top: 15px;
+      border-left: 4px solid #c7a332;
+    }
   </style>
+  <!-- OpenCV.js (ready for integration) -->
   <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>Gold Volume Estimator (Option B)</h1>
-
+    <h1>Option B: Image-Based Volume Estimation</h1>
+    
     <input type="file" id="uploadImage" accept="image/*">
-    <input type="number" id="refLength" placeholder="Enter reference object's real length (mm)">
-    <button onclick="analyzeImage()">Estimate Volume</button>
-    <canvas id="canvasOutput" class="preview-img"></canvas>
-    <div id="imageResult" class="result-box"></div>
+    
+    <label for="shapeType">Select Object Shape:</label>
+    <select id="shapeType">
+      <option value="rod">Long Rod</option>
+      <option value="bar">Rectangular Bar</option>
+      <option value="nugget">Irregular Nugget</option>
+    </select>
+    
+    <button onclick="analyzeImage()">Analyze Image</button>
+    
+    <div id="imageOutput"></div>
+    <div id="volumeOutput" class="result-box"></div>
+    
+    <div class="helper-ui">
+      <b>Image Capture Tips:</b><br><br>
+      • Place the object on a flat surface with good contrast.<br>
+      • Take the photo directly from above (90° angle).<br>
+      • Ensure even lighting without shadows or glare.<br>
+      • Use a known reference like a standard coin or credit card, if available.<br>
+      • Select the correct shape type above to assist in volume estimation.
+    </div>
   </div>
 
   <script>
-    let imgElement = null;
-
     function analyzeImage() {
       const fileInput = document.getElementById("uploadImage");
-      const refLength = parseFloat(document.getElementById("refLength").value);
-      if (!fileInput.files.length || isNaN(refLength) || refLength <= 0) {
-        alert("Please select an image and provide a valid reference length.");
+      const shapeType = document.getElementById("shapeType").value;
+      const volumeOutput = document.getElementById("volumeOutput");
+
+      if (fileInput.files.length === 0) {
+        alert("Please select an image.");
         return;
       }
 
-      const file = fileInput.files[0];
+      const img = document.createElement("img");
+      img.classList.add("preview-img");
+
       const reader = new FileReader();
-      reader.onload = function(e) {
-        imgElement = new Image();
-        imgElement.onload = function () {
-          const canvas = document.getElementById("canvasOutput");
-          canvas.width = imgElement.width;
-          canvas.height = imgElement.height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(imgElement, 0, 0);
+      reader.onload = function (e) {
+        img.src = e.target.result;
+        document.getElementById("imageOutput").innerHTML = "";
+        document.getElementById("imageOutput").appendChild(img);
 
-          const src = cv.imread(canvas);
-          const gray = new cv.Mat();
-          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-          const thresh = new cv.Mat();
-          cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+        // Placeholder logic based on shape type (to be replaced by OpenCV logic)
+        let estimatedVolume = 0;
+        if (shapeType === "rod") {
+          estimatedVolume = 10.0;
+        } else if (shapeType === "bar") {
+          estimatedVolume = 12.5;
+        } else {
+          estimatedVolume = 8.0;
+        }
 
-          const contours = new cv.MatVector();
-          const hierarchy = new cv.Mat();
-          cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-          let largestContour = null;
-          let maxArea = 0;
-          for (let i = 0; i < contours.size(); i++) {
-            const cnt = contours.get(i);
-            const area = cv.contourArea(cnt);
-            if (area > maxArea) {
-              maxArea = area;
-              largestContour = cnt;
-            }
-          }
-
-          if (largestContour) {
-            const rect = cv.boundingRect(largestContour);
-            const pixelRefLength = rect.width; // assume ref object is horizontal
-            const scale = refLength / pixelRefLength; // mm per pixel
-
-            const realWidth = rect.width * scale / 10; // convert mm to cm
-            const realHeight = rect.height * scale / 10;
-            const volume = (4 / 3) * Math.PI * Math.pow(realWidth / 2, 2) * (realHeight / 2); // ellipsoid approx
-
-            ctx.strokeStyle = "#c7a332";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-
-            document.getElementById("imageResult").innerHTML = `
-              <b>Object Real Width:</b> ${realWidth.toFixed(2)} cm<br>
-              <b>Object Real Height:</b> ${realHeight.toFixed(2)} cm<br>
-              <b>Estimated Volume:</b> ${volume.toFixed(2)} cm³
-            `;
-          } else {
-            document.getElementById("imageResult").innerText = "Could not detect object.";
-          }
-
-          gray.delete(); thresh.delete(); src.delete(); contours.delete(); hierarchy.delete();
-        };
-        imgElement.src = e.target.result;
+        volumeOutput.innerHTML = `
+          <b>Estimated Shape:</b> ${shapeType}<br>
+          <b>Estimated Volume:</b> ${estimatedVolume.toFixed(2)} cm³<br>
+          (Shape-based estimate, real calculation coming soon)
+        `;
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileInput.files[0]);
     }
   </script>
 </body>
