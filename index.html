@@ -179,7 +179,11 @@
 
     function displayResult(estimatedPurity) {
       const resultBox = document.getElementById("resultBox");
-      resultBox.innerHTML = `<b>Estimated Purity:</b> ${estimatedPurity}`;
+      if (estimatedPurity === "Unknown") {
+        resultBox.innerHTML = "<b>Error:</b> Could not estimate purity. Ensure the image is clear and properly lit.";
+      } else {
+        resultBox.innerHTML = `<b>Estimated Purity:</b> ${estimatedPurity}`;
+      }
     }
   </script>
 </body>
