@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Option B: Image-Based Volume Estimation</title>
+  <title>Gold Purity Estimator - Color Based</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -19,11 +19,11 @@
       padding: 20px;
       border-radius: 10px;
     }
-    h1 {
+    h1, h2 {
       text-align: center;
       color: #c7a332;
     }
-    input, select, button {
+    input, button {
       width: 100%;
       padding: 10px;
       margin: 10px 0;
@@ -36,6 +36,9 @@
       background-color: #c7a332;
       cursor: pointer;
     }
+    .section {
+      margin-top: 30px;
+    }
     .preview-img {
       max-width: 100%;
       margin-top: 10px;
@@ -47,50 +50,51 @@
       border-radius: 5px;
       margin-top: 10px;
     }
-    .helper-ui {
+    .instruction-box {
       background-color: #333;
       padding: 15px;
       margin-top: 15px;
       border-left: 4px solid #c7a332;
     }
   </style>
-  <!-- OpenCV.js (ready for integration) -->
+  <!-- OpenCV.js -->
   <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>Option B: Image-Based Volume Estimation</h1>
+    <h1>Gold Purity Estimator</h1>
     
-    <input type="file" id="uploadImage" accept="image/*">
-    
-    <label for="shapeType">Select Object Shape:</label>
-    <select id="shapeType">
-      <option value="rod">Long Rod</option>
-      <option value="bar">Rectangular Bar</option>
-      <option value="nugget">Irregular Nugget</option>
-    </select>
-    
-    <button onclick="analyzeImage()">Analyze Image</button>
-    
-    <div id="imageOutput"></div>
-    <div id="volumeOutput" class="result-box"></div>
-    
-    <div class="helper-ui">
-      <b>Image Capture Tips:</b><br><br>
-      • Place the object on a flat surface with good contrast.<br>
-      • Take the photo directly from above (90° angle).<br>
-      • Ensure even lighting without shadows or glare.<br>
-      • Use a known reference like a standard coin or credit card, if available.<br>
-      • Select the correct shape type above to assist in volume estimation.
+    <!-- Option B: Color-Based Purity Estimation -->
+    <div class="section">
+      <h2>Option B: Estimate Purity Based on Color</h2>
+      <input type="file" id="uploadImage" accept="image/*">
+      <button onclick="analyzeImage()">Analyze Image</button>
+      <div id="imageOutput"></div>
+    </div>
+
+    <div id="resultBox" class="result-box"></div>
+    <div class="instruction-box">
+      <b>How to Use:</b><br><br>
+      • Upload an image of your gold object.<br>
+      • The system will estimate the purity based on color analysis.<br><br>
+      <b>Note:</b> The more accurate the image (well-lit, focused), the better the result.
     </div>
   </div>
 
   <script>
+    // Predefined color ranges for different gold purities (in HSV format)
+    const purityRanges = {
+      "24K": { min: [20, 100, 100], max: [40, 255, 255] }, // Bright Yellow
+      "22K": { min: [20, 80, 80], max: [40, 200, 255] },
+      "18K": { min: [20, 50, 50], max: [40, 150, 200] },
+      "14K": { min: [15, 40, 40], max: [45, 120, 180] },
+      "10K": { min: [10, 30, 30], max: [50, 100, 150] }
+    };
+
+    let imageMat;
+
     function analyzeImage() {
       const fileInput = document.getElementById("uploadImage");
-      const shapeType = document.getElementById("shapeType").value;
-      const volumeOutput = document.getElementById("volumeOutput");
-
       if (fileInput.files.length === 0) {
         alert("Please select an image.");
         return;
@@ -98,30 +102,77 @@
 
       const img = document.createElement("img");
       img.classList.add("preview-img");
-
       const reader = new FileReader();
+
       reader.onload = function (e) {
         img.src = e.target.result;
         document.getElementById("imageOutput").innerHTML = "";
         document.getElementById("imageOutput").appendChild(img);
-
-        // Placeholder logic based on shape type (to be replaced by OpenCV logic)
-        let estimatedVolume = 0;
-        if (shapeType === "rod") {
-          estimatedVolume = 10.0;
-        } else if (shapeType === "bar") {
-          estimatedVolume = 12.5;
-        } else {
-          estimatedVolume = 8.0;
-        }
-
-        volumeOutput.innerHTML = `
-          <b>Estimated Shape:</b> ${shapeType}<br>
-          <b>Estimated Volume:</b> ${estimatedVolume.toFixed(2)} cm³<br>
-          (Shape-based estimate, real calculation coming soon)
-        `;
+        img.onload = () => {
+          // Convert the image to OpenCV Mat format and process it
+          cv['onRuntimeInitialized'] = () => {
+            let src = cv.imread(img);
+            let hsv = new cv.Mat();
+            cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV); // Convert image to HSV
+            detectPurity(hsv);
+            src.delete();
+            hsv.delete();
+          }
+        };
       };
       reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    function detectPurity(hsvMat) {
+      let avgColor = getAverageColor(hsvMat);
+
+      // Get purity based on average color
+      let estimatedPurity = estimatePurityBasedOnColor(avgColor);
+      displayResult(estimatedPurity);
+    }
+
+    function getAverageColor(mat) {
+      const size = mat.size();
+      const totalPixels = size[0] * size[1];
+      let sumH = 0, sumS = 0, sumV = 0;
+
+      for (let i = 0; i < size[0]; i++) {
+        for (let j = 0; j < size[1]; j++) {
+          let pixel = mat.ucharPtr(i, j);
+          sumH += pixel[0];
+          sumS += pixel[1];
+          sumV += pixel[2];
+        }
+      }
+
+      return {
+        h: sumH / totalPixels,
+        s: sumS / totalPixels,
+        v: sumV / totalPixels
+      };
+    }
+
+    function estimatePurityBasedOnColor(avgColor) {
+      let estimatedPurity = "Unknown";
+
+      for (let purity in purityRanges) {
+        let range = purityRanges[purity];
+
+        if (
+          avgColor.h >= range.min[0] && avgColor.h <= range.max[0] &&
+          avgColor.s >= range.min[1] && avgColor.s <= range.max[1] &&
+          avgColor.v >= range.min[2] && avgColor.v <= range.max[2]
+        ) {
+          estimatedPurity = purity;
+          break;
+        }
+      }
+      return estimatedPurity;
+    }
+
+    function displayResult(estimatedPurity) {
+      const resultBox = document.getElementById("resultBox");
+      resultBox.innerHTML = `<b>Estimated Purity:</b> ${estimatedPurity}`;
     }
   </script>
 </body>
