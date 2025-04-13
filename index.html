@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gold Purity Estimator</title>
+  <title>Gold Purity & Volume Estimator</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -36,8 +36,10 @@
       background-color: #c7a332;
       cursor: pointer;
     }
-    .section {
-      margin-top: 30px;
+    .preview-img {
+      max-width: 100%;
+      margin-top: 10px;
+      border: 1px solid #555;
     }
     .result-box {
       background-color: #444;
@@ -45,131 +47,90 @@
       border-radius: 5px;
       margin-top: 10px;
     }
-    #arContainer {
-      width: 100%;
-      height: 400px;
-      background-color: #333;
-      margin-top: 20px;
-      border-radius: 10px;
-    }
   </style>
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>Gold Purity & Volume Estimator</h1>
+    <h1>Gold Volume Estimator (Option B)</h1>
 
-    <!-- Option A: WebXR 3D Scanning -->
-    <div class="section">
-      <h2>Option A: Advanced 3D Scanning (AR)</h2>
-      <button onclick="startARSession()">Start AR Scan</button>
-      <div id="arContainer"></div>
-      <div id="arResult" class="result-box"></div>
-    </div>
-
-    <!-- Option C: Weight-Based Water Displacement -->
-    <div class="section">
-      <h2>Option C: Weight-Based Water Displacement</h2>
-      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)">
-      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)">
-      <button onclick="calculatePurity()">Calculate Volume & Purity</button>
-      <div id="displacementResult" class="result-box"></div>
-      <div class="progress-bar"><div id="confidenceBar" class="progress" style="width: 0%">0%</div></div>
-    </div>
+    <input type="file" id="uploadImage" accept="image/*">
+    <input type="number" id="refLength" placeholder="Enter reference object's real length (mm)">
+    <button onclick="analyzeImage()">Estimate Volume</button>
+    <canvas id="canvasOutput" class="preview-img"></canvas>
+    <div id="imageResult" class="result-box"></div>
   </div>
 
   <script>
-    async function checkWebXRSupport() {
-      if (!navigator.xr) {
-        alert("WebXR is not supported on this browser.");
-        return false;
-      }
+    let imgElement = null;
 
-      const isSupported = await navigator.xr.isSessionSupported("immersive-ar");
-      if (isSupported) {
-        alert("WebXR AR is supported on this device.");
-        return true;
-      } else {
-        alert("WebXR AR is not supported on this device.");
-        return false;
-      }
-    }
-
-    async function startARSession() {
-      const supported = await checkWebXRSupport();
-      if (!supported) return;
-
-      const xrSession = await navigator.xr.requestSession("immersive-ar", {
-        requiredFeatures: ["hit-test", "anchor"]
-      });
-
-      const gl = document.createElement("canvas").getContext("webgl", { xrCompatible: true });
-      const xrLayer = new XRWebGLLayer(xrSession, gl);
-
-      xrSession.updateRenderState({ baseLayer: xrLayer });
-
-      const xrReferenceSpace = await xrSession.requestReferenceSpace("viewer");
-      xrSession.requestAnimationFrame(onXRFrame);
-
-      document.getElementById("arContainer").appendChild(gl.canvas);
-
-      xrSession.addEventListener("end", () => {
-        gl.canvas.remove();
-      });
-    }
-
-    let hitTestSource = null;
-    let hitTestSourceInitialized = false;
-
-    async function onXRFrame(time, xrFrame) {
-      const xrSession = xrFrame.session;
-      const xrReferenceSpace = await xrSession.requestReferenceSpace("viewer");
-
-      const hitTestResults = xrFrame.getHitTestResults(hitTestSource);
-
-      if (hitTestResults.length > 0) {
-        const hit = hitTestResults[0];
-        const hitPose = hit.getPose(xrReferenceSpace);
-
-        // Create 3D object or indicator based on hit-test results
-        // Here we just log the hit position as an example
-        console.log("Hit Position: ", hitPose.transform.position);
-
-        // You would typically instantiate 3D models and place them here
-      }
-
-      xrSession.requestAnimationFrame(onXRFrame);
-    }
-
-    // Option C: Weight-Based Water Displacement
-    function calculatePurity() {
-      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
-      const displacedWater = parseFloat(document.getElementById("displacedWater").value);
-      const resultBox = document.getElementById("displacementResult");
-      const confidenceBar = document.getElementById("confidenceBar");
-
-      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
-        alert("Please enter valid dry weight and displaced water weight.");
+    function analyzeImage() {
+      const fileInput = document.getElementById("uploadImage");
+      const refLength = parseFloat(document.getElementById("refLength").value);
+      if (!fileInput.files.length || isNaN(refLength) || refLength <= 0) {
+        alert("Please select an image and provide a valid reference length.");
         return;
       }
 
-      const volume = displacedWater; // 1g water = 1cm³
-      const density = dryWeight / volume;
-      const goldDensity = 19.3;
-      const purityPercent = (density / goldDensity) * 100;
-      const karat = (purityPercent / 100) * 24;
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        imgElement = new Image();
+        imgElement.onload = function () {
+          const canvas = document.getElementById("canvasOutput");
+          canvas.width = imgElement.width;
+          canvas.height = imgElement.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(imgElement, 0, 0);
 
-      let confidence = 0;
-      if (displacedWater >= 0.3 && dryWeight >= 1) {
-        confidence = Math.min(100, (displacedWater / 0.8) * 100);
-      }
+          const src = cv.imread(canvas);
+          const gray = new cv.Mat();
+          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+          const thresh = new cv.Mat();
+          cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
 
-      resultBox.innerHTML = `
-        <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
-        <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purityPercent.toFixed(2)} (${karat.toFixed(2)}K)
-      `;
-      confidenceBar.style.width = confidence.toFixed(0) + "%";
-      confidenceBar.textContent = confidence.toFixed(0) + "%";
+          const contours = new cv.MatVector();
+          const hierarchy = new cv.Mat();
+          cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+          let largestContour = null;
+          let maxArea = 0;
+          for (let i = 0; i < contours.size(); i++) {
+            const cnt = contours.get(i);
+            const area = cv.contourArea(cnt);
+            if (area > maxArea) {
+              maxArea = area;
+              largestContour = cnt;
+            }
+          }
+
+          if (largestContour) {
+            const rect = cv.boundingRect(largestContour);
+            const pixelRefLength = rect.width; // assume ref object is horizontal
+            const scale = refLength / pixelRefLength; // mm per pixel
+
+            const realWidth = rect.width * scale / 10; // convert mm to cm
+            const realHeight = rect.height * scale / 10;
+            const volume = (4 / 3) * Math.PI * Math.pow(realWidth / 2, 2) * (realHeight / 2); // ellipsoid approx
+
+            ctx.strokeStyle = "#c7a332";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+
+            document.getElementById("imageResult").innerHTML = `
+              <b>Object Real Width:</b> ${realWidth.toFixed(2)} cm<br>
+              <b>Object Real Height:</b> ${realHeight.toFixed(2)} cm<br>
+              <b>Estimated Volume:</b> ${volume.toFixed(2)} cm³
+            `;
+          } else {
+            document.getElementById("imageResult").innerText = "Could not detect object.";
+          }
+
+          gray.delete(); thresh.delete(); src.delete(); contours.delete(); hierarchy.delete();
+        };
+        imgElement.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     }
   </script>
 </body>
