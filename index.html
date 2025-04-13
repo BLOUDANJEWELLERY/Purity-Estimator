@@ -109,22 +109,27 @@
         document.getElementById("imageOutput").innerHTML = "";
         document.getElementById("imageOutput").appendChild(img);
         img.onload = () => {
+          console.log("Image loaded successfully.");
           // Convert the image to OpenCV Mat format and process it
           cv['onRuntimeInitialized'] = () => {
+            console.log("OpenCV.js runtime initialized.");
             let src = cv.imread(img);
             let hsv = new cv.Mat();
             cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV); // Convert image to HSV
             detectPurity(hsv);
             src.delete();
             hsv.delete();
-          }
+          };
         };
       };
       reader.readAsDataURL(fileInput.files[0]);
     }
 
     function detectPurity(hsvMat) {
+      console.log("Processing HSV matrix...");
+
       let avgColor = getAverageColor(hsvMat);
+      console.log("Average color:", avgColor);
 
       // Get purity based on average color
       let estimatedPurity = estimatePurityBasedOnColor(avgColor);
@@ -153,6 +158,7 @@
     }
 
     function estimatePurityBasedOnColor(avgColor) {
+      console.log("Estimating purity...");
       let estimatedPurity = "Unknown";
 
       for (let purity in purityRanges) {
@@ -164,6 +170,7 @@
           avgColor.v >= range.min[2] && avgColor.v <= range.max[2]
         ) {
           estimatedPurity = purity;
+          console.log("Purity estimated as: " + purity);
           break;
         }
       }
