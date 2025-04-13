@@ -87,17 +87,6 @@
       <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" step="any">
       <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" step="any">
 
-      <!-- Calibration Toggle -->
-      <label><input type="checkbox" id="enableCalibration" onchange="toggleCalibration()"> Enable Calibration</label>
-
-      <!-- Calibration Panel -->
-      <div id="calibrationBox" style="display:none; margin-top:10px;">
-        <input type="number" id="knownPurity" placeholder="Known Purity (e.g. 875)" step="any">
-        <button onclick="calibrate()">Calibrate</button>
-        <button onclick="resetCalibration()">Reset Calibration</button>
-        <div id="calibrationStatus" class="note"></div>
-      </div>
-
       <button onclick="calculatePurity()">Calculate Volume & Purity</button>
 
       <div id="displacementResult" class="result-box"></div>
@@ -108,51 +97,6 @@
   </div>
 
   <script>
-    let calibrationFactor = 1;
-    let calibrationEnabled = false;
-
-    // Load persisted calibration
-    window.onload = function () {
-      const storedFactor = localStorage.getItem("calibrationFactor");
-      if (storedFactor) {
-        calibrationFactor = parseFloat(storedFactor);
-        calibrationEnabled = true;
-        document.getElementById("enableCalibration").checked = true;
-        toggleCalibration();
-        document.getElementById("calibrationStatus").textContent = "Calibration loaded and active.";
-      }
-    };
-
-    function toggleCalibration() {
-      const box = document.getElementById("calibrationBox");
-      calibrationEnabled = document.getElementById("enableCalibration").checked;
-      box.style.display = calibrationEnabled ? 'block' : 'none';
-    }
-
-    function calibrate() {
-      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
-      const displacedWater = parseFloat(document.getElementById("displacedWater").value);
-      const knownPurity = parseFloat(document.getElementById("knownPurity").value);
-
-      if (isNaN(dryWeight) || isNaN(displacedWater) || isNaN(knownPurity) || displacedWater === 0) {
-        alert("Enter valid dry weight, displaced water, and known purity.");
-        return;
-      }
-
-      const measuredDensity = dryWeight / displacedWater;
-      const expectedDensity = (knownPurity / 1000) * 19.3;
-      calibrationFactor = expectedDensity / measuredDensity;
-
-      localStorage.setItem("calibrationFactor", calibrationFactor);
-      document.getElementById("calibrationStatus").textContent = "Calibration successful. Factor applied to future results.";
-    }
-
-    function resetCalibration() {
-      calibrationFactor = 1;
-      localStorage.removeItem("calibrationFactor");
-      document.getElementById("calibrationStatus").textContent = "Calibration reset. Default mode restored.";
-    }
-
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
@@ -165,15 +109,7 @@
 
       const volume = displacedWater;
       const goldDensity = 19.3;
-      let density = dryWeight / volume;
-
-      // Apply calibration
-      let calibrated = false;
-      if (calibrationEnabled && localStorage.getItem("calibrationFactor")) {
-        density *= calibrationFactor;
-        calibrated = true;
-      }
-
+      const density = dryWeight / volume;
       const purityOutOf1000 = Math.min(1000, Math.max(0, Math.round((density / goldDensity) * 1000)));
 
       // Confidence Estimation
@@ -201,7 +137,6 @@
         <b>Density:</b> ${density.toFixed(3)} g/cm³<br>
         <b>Estimated Purity:</b> ${purityOutOf1000} / 1000<br>
         <div class="note">
-          ${calibrated ? "**Calibrated result applied based on known sample.**<br>" : ""}
           Confidence reflects how likely this result is to be correct under current test conditions.
         </div>
       `;
