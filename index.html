@@ -89,44 +89,57 @@
     </div>
   </div>
 
-  <script>
-    function calculatePurity() {
-      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
-      const displacedWater = parseFloat(document.getElementById("displacedWater").value);
-      const shape = document.getElementById("shape").value;
+ <script>
+  function calculatePurity() {
+    const dryWeight = parseFloat(document.getElementById("dryWeight").value);
+    const displacedWater = parseFloat(document.getElementById("displacedWater").value);
+    const shape = document.getElementById("shape").value;
 
-      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
-        alert("Please enter valid dry weight and displaced water weight.");
-        return;
-      }
-
-      // For volume, we rely solely on the displaced water weight for simplicity
-      let volume = displacedWater;
-
-      // If shape is nugget or other, we assume water displacement directly gives volume
-      // For simplicity, no need for specific formulas based on shape. 
-      // However, you can adjust the purity calculation slightly based on shape if desired.
-
-      const goldDensity = 19.3; // Density of pure gold in g/cm³
-      const density = dryWeight / volume;
-      const purityOutOf1000 = Math.min(1000, Math.max(0, Math.round((density / goldDensity) * 1000)));
-
-      // Confidence calculation based on deviation from pure gold density
-      let deviation = Math.abs(density - goldDensity);
-      let weightFactor = Math.min(1, dryWeight / 10); // 0 to 1 for 0–10g
-      let deviationFactor = Math.max(0, 1 - deviation / 5); // More deviation = lower confidence
-      let confidence = Math.round(deviationFactor * weightFactor * 100);
-
-      // Update the UI with the results
-      document.getElementById("displacementResult").innerHTML = `
-        <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
-        <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purityOutOf1000} / 1000
-      `;
-      document.getElementById("confidenceBar").style.width = confidence + "%";
-      document.getElementById("confidenceBar").style.backgroundColor = confidence > 80 ? 'green' : 'red';
-      document.getElementById("confidenceBar").textContent = confidence + "%";
+    if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
+      alert("Please enter valid dry weight and displaced water weight.");
+      return;
     }
-  </script>
+
+    const volume = displacedWater;
+    const goldDensity = 19.3;
+    const density = dryWeight / volume;
+    const purityOutOf1000 = Math.min(1000, Math.max(0, Math.round((density / goldDensity) * 1000)));
+
+    // Confidence based on conditions
+    let confidence = 100;
+
+    // Lower weights reduce confidence
+    if (dryWeight < 0.3) confidence -= 50;
+    else if (dryWeight < 1) confidence -= 35;
+    else if (dryWeight < 5) confidence -= 20;
+    else if (dryWeight < 10) confidence -= 10;
+
+    // Very low displacement water also reduces confidence
+    if (displacedWater < 0.3) confidence -= 30;
+    else if (displacedWater < 1) confidence -= 20;
+    else if (displacedWater < 3) confidence -= 10;
+
+    // Shape-based adjustment
+    if (shape === "nugget" || shape === "other") confidence -= 15;
+
+    confidence = Math.max(0, Math.min(100, Math.round(confidence)));
+
+    // UI update
+    let color = "#ff0000";
+    if (confidence > 85) color = "green";
+    else if (confidence > 60) color = "orange";
+
+    document.getElementById("displacementResult").innerHTML = `
+      <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
+      <b>Density:</b> ${density.toFixed(3)} g/cm³<br>
+      <b>Estimated Purity:</b> ${purityOutOf1000} / 1000<br><br>
+      <i>Confidence reflects how likely this result is to be correct under current test conditions (weight, displacement, shape).</i>
+    `;
+    const bar = document.getElementById("confidenceBar");
+    bar.style.width = confidence + "%";
+    bar.style.backgroundColor = color;
+    bar.textContent = confidence + "%";
+  }
+</script>
 </body>
 </html>
