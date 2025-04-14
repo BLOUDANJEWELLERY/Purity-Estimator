@@ -110,25 +110,27 @@
         return;
       }
 
+      // Corrected Coin Detection:
       let coinRadiusPx = circles.data32F[2];
       let coinDiameterPx = coinRadiusPx * 2;
-      const realCoinDiameter = 26.0; // mm
+      const realCoinDiameter = 26.0; // mm (known real-world size of the coin)
 
-      // Fixed scaling factor - Use the real coin diameter and detect the pixels
+      // Fixing the scaling factor:
       let pxPerMM = coinDiameterPx / realCoinDiameter;  // px per millimeter
       console.log(`Detected coin diameter in pixels: ${coinDiameterPx} px`);
       console.log(`Scaling factor (px/mm): ${pxPerMM.toFixed(2)}`);
 
-      // Ensure px/mm is realistic (reasonable range)
+      // Corrected check for scaling factor:
       if (pxPerMM < 0.1 || pxPerMM > 10) {
         alert("Scaling factor seems unrealistic. Please upload a better image.");
         return;
       }
 
-      // Convert area from pixels to millimeters squared
-      let goldAreaPx = (src.rows * src.cols) - (Math.PI * coinRadiusPx * coinRadiusPx);
-      let goldAreaMM = goldAreaPx / (pxPerMM * pxPerMM);  // Convert pixel area to millimeters squared
+      // Convert pixel area to millimeter squared (gold area estimation):
+      let goldAreaPx = (src.rows * src.cols) - (Math.PI * coinRadiusPx * coinRadiusPx); 
+      let goldAreaMM = goldAreaPx / (pxPerMM * pxPerMM); // Convert pixel area to millimeters squared
 
+      // Volume calculation - corrected
       let volume = 0;
       switch (shape) {
         case "rod":
@@ -145,7 +147,7 @@
           break;
 
         case "coin":
-          let coinRadiusMM = goldAreaMM / 2; // Assume it's a circle
+          let coinRadiusMM = Math.sqrt(goldAreaMM / Math.PI); // Correct radius for coin
           let coinThicknessMM = 1.5; // Known thickness for coin (adjustable)
           volume = Math.PI * Math.pow(coinRadiusMM, 2) * coinThicknessMM;
           break;
@@ -160,7 +162,7 @@
       let density = weight / volume; // Calculate density
       let purity = Math.min(1000, Math.round((density / 19.3) * 1000)); // Purity based on gold density (19.3 g/cm³)
 
-      // Display results
+      // Display results:
       document.getElementById("result").innerHTML = `
         <b>Detected Coin Diameter:</b> ${coinDiameterPx.toFixed(1)} px<br>
         <b>Scaling Factor (px/mm):</b> ${pxPerMM.toFixed(2)}<br>
