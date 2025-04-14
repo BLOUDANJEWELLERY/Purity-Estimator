@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gold Purity Estimator (Upload Method)</title>
+  <title>Gold Purity Estimator (Upload Image)</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -120,21 +120,47 @@
       let goldAreaPx = (src.rows * src.cols) - (Math.PI * coinRadiusPx * coinRadiusPx);
       let goldAreaMM = goldAreaPx / (pxPerMM * pxPerMM);
 
-      // Estimate volume from area (rough based on shape)
-      let volume;
+      let volume = 0;
+
+      // Calculate volume based on selected shape
       switch (shape) {
         case "rod":
-        case "bar":
-        case "coin":
-          volume = goldAreaMM * 1.5; break;
-        default:
-          volume = goldAreaMM * 1.2; break;
-      }
-      volume /= 1000; // mm³ to cm³
+          // Rod (Cylinder) Volume Calculation
+          let rodRadiusMM = goldAreaMM / 2; // Approximate radius based on area
+          let rodHeightMM = 50; // Assume typical height, can be adjusted based on image
+          volume = Math.PI * Math.pow(rodRadiusMM, 2) * rodHeightMM;
+          break;
 
+        case "bar":
+          // Bar (Rectangular Prism) Volume Calculation
+          let barWidthMM = goldAreaMM / 2; // Approximate width based on area
+          let barHeightMM = 50; // Assume typical height, can be adjusted
+          let barThicknessMM = 5; // Assume thickness for simplicity
+          volume = barWidthMM * barHeightMM * barThicknessMM;
+          break;
+
+        case "coin":
+          // Coin (Cylinder) Volume Calculation
+          let coinRadiusMM = goldAreaMM / 2;
+          let coinThicknessMM = 1.5; // Known thickness of coin
+          volume = Math.PI * Math.pow(coinRadiusMM, 2) * coinThicknessMM;
+          break;
+
+        default:
+          // Irregular/Nugget Volume Estimation (based on area)
+          volume = goldAreaMM * 1.2; // Rough estimation for irregular shapes
+          break;
+      }
+
+      volume /= 1000; // Convert from mm³ to cm³
+
+      // Density Calculation (Density = Weight / Volume)
       let density = weight / volume;
+      
+      // Purity Calculation (Relative to Gold's density, 19.3 g/cm³)
       let purity = Math.min(1000, Math.round((density / 19.3) * 1000));
 
+      // Display Results
       document.getElementById("result").innerHTML = `
         <b>Detected Coin Diameter:</b> ${coinDiameterPx.toFixed(1)} px<br>
         <b>px/mm:</b> ${pxPerMM.toFixed(2)}<br>
@@ -143,6 +169,7 @@
         <b>Purity:</b> ${purity} / 1000
       `;
 
+      // Clean up memory
       src.delete(); gray.delete(); circles.delete();
     }
   </script>
