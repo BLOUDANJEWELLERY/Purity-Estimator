@@ -4,22 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gold Purity Estimator - Option B</title>
-  <script async src="https://docs.opencv.org/4.5.2/opencv.js" onload="onOpenCvReady();" ></script>
+  <script async src="https://docs.opencv.org/4.5.2/opencv.js" onload="onOpenCvReady();"></script>
   <style>
     body {
       background-color: #1a1a1a;
       color: white;
       font-family: Arial, sans-serif;
       padding: 20px;
-      overflow-x: hidden; /* Prevent horizontal scrolling on mobile */
+      overflow-x: hidden;
     }
     .container {
-      max-width: 100%; /* Ensure it is responsive */
+      max-width: 100%;
       margin: auto;
       background-color: #2c2c2c;
       padding: 20px;
       border-radius: 10px;
-      overflow: hidden; /* Prevents canvas from causing overflow */
     }
     input, select, button {
       display: block;
@@ -36,9 +35,13 @@
       cursor: pointer;
     }
     canvas {
-      width: 100%; /* Ensure the canvas is responsive */
+      width: 100%;
       margin-top: 10px;
-      display: block; /* Prevent extra space below canvas */
+      display: block;
+    }
+    #errorMessage {
+      color: red;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -62,12 +65,12 @@
     <canvas id="canvas"></canvas>
 
     <div id="result"></div>
+    <div id="errorMessage"></div> <!-- For showing error messages -->
   </div>
 
   <script>
     let cvReady = false;
     function onOpenCvReady() {
-      console.log("OpenCV.js is ready.");
       cvReady = true;
     }
 
@@ -84,7 +87,6 @@
             canvas.width = img.width;
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
-            console.log("Image loaded and drawn on canvas.");
           }
           img.src = e.target.result;
         };
@@ -93,11 +95,8 @@
     }
 
     function processImage() {
-      console.log("Processing image...");
-      
       if (!cvReady) {
-        alert("OpenCV.js not yet loaded. Please wait.");
-        console.log("OpenCV is not ready.");
+        document.getElementById('errorMessage').innerText = "OpenCV.js is not yet ready.";
         return;
       }
 
@@ -105,45 +104,37 @@
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const shape = document.getElementById("shape").value;
       if (!fileInput.files.length || isNaN(dryWeight)) {
-        alert("Please select an image and enter dry weight.");
-        console.log("Missing image or dry weight.");
+        document.getElementById('errorMessage').innerText = "Please select an image and enter dry weight.";
         return;
       }
 
       const img = new Image();
       img.onload = () => {
-        console.log("Image loaded.");
-
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
-        console.log("Image drawn on canvas.");
 
         const src = cv.imread(canvas);
         const gray = new cv.Mat();
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
         cv.medianBlur(gray, gray, 5);
 
-        // Coin detection
         const circles = new cv.Mat();
         cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 50, 100, 30, 10, 100);
         if (circles.cols < 1) {
-          alert("Reference coin not detected. Try retaking from directly above.");
-          console.log("Coin not detected.");
+          document.getElementById('errorMessage').innerText = "Reference coin not detected. Try retaking the photo from directly above.";
           src.delete(); gray.delete(); circles.delete();
           return;
         }
 
-        // Assume first circle is the coin
         let coinRadius = circles.data32F[2];
         const coinPixelDiameter = coinRadius * 2;
         const coinMM = 26.0;
 
         const scale = coinMM / coinPixelDiameter;
 
-        // Thresholding to isolate the object
         const thresh = new cv.Mat();
         cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
 
@@ -170,13 +161,13 @@
           const height = heightMM / 10;
           volumeCM3 = Math.PI * radius * radius * height;
         } else if (shape === "bar") {
-          volumeCM3 = (widthMM / 10) * (heightMM / 10) * 0.5; // 0.5cm thick assumption
+          volumeCM3 = (widthMM / 10) * (heightMM / 10) * 0.5;
         } else if (shape === "coin") {
           const radius = widthMM / 2 / 10;
-          const height = 0.15; // 1.5mm thickness
+          const height = 0.15;
           volumeCM3 = Math.PI * radius * radius * height;
         } else {
-          volumeCM3 = maxArea * scale * scale / 100; // approximate for irregular
+          volumeCM3 = maxArea * scale * scale / 100;
         }
 
         const density = dryWeight / volumeCM3;
