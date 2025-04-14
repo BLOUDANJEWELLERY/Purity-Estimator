@@ -27,7 +27,7 @@
     <li>Weigh your gold item and note its dry weight in grams.</li>
     <li>Take <b>two images</b> of the gold item:
       <ul>
-        <li><b>Top View</b>: Include a round coin (like a 2.4 cm coin) next to the gold item.</li>
+        <li><b>Top View</b>: Include a round coin (like a 2.6 cm coin) next to the gold item.</li>
         <li><b>Side View</b>: Show the full vertical height.</li>
       </ul>
     </li>
@@ -67,6 +67,7 @@
   let topPoints = [], heightLine = [];
   let pxPerCm = null;
 
+  // Load the top view image and detect the coin
   function loadTopImage(input) {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -92,27 +93,50 @@
     };
   }
 
+  // Coin detection and scale calculation
   function detectCoinScale(img) {
     let mat = cv.imread(img);
     let gray = new cv.Mat();
-    cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY);
+    cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY); // Convert to grayscale
     let circles = new cv.Mat();
+
+    // Adjust HoughCircle parameters: tune these values based on your image
     cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 30, 100, 30, 10, 100);
+
+    // Check if any circles were detected
     if (circles.cols > 0) {
-      let circle = circles.data32F.slice(0, 3);
+      let circle = circles.data32F.slice(0, 3); // Get the first detected circle
+      let centerX = circle[0];
+      let centerY = circle[1];
       let radiusPx = circle[2];
-      let coinDiameterCm = 2.4;
+
+      // Debug: log the detected circle's details
+      console.log(`Coin detected! Center: (${centerX}, ${centerY}), Radius: ${radiusPx}px`);
+
+      // Coin's known diameter (in cm)
+      let coinDiameterCm = 2.6; // Updated to 2.6 cm
+
+      // Calculate pixels per cm based on the detected radius
       pxPerCm = radiusPx * 2 / coinDiameterCm;
-      topCtx.strokeStyle = "lime";
+
+      // Draw the detected circle on the canvas (green outline)
+      topCtx.strokeStyle = "lime"; // Green color for coin
+      topCtx.lineWidth = 3; // Line width for the circle outline
       topCtx.beginPath();
-      topCtx.arc(circle[0], circle[1], radiusPx, 0, 2 * Math.PI);
+      topCtx.arc(centerX, centerY, radiusPx, 0, 2 * Math.PI); // Draw circle
       topCtx.stroke();
     } else {
-      alert("Coin not detected. Please outline reference manually.");
+      // Alert if no coin is detected
+      alert("Coin not detected. Please make sure it's visible and well-lit in the image.");
     }
-    mat.delete(); gray.delete(); circles.delete();
+
+    // Release OpenCV objects
+    mat.delete();
+    gray.delete();
+    circles.delete();
   }
 
+  // Load the side view image
   function loadSideImage(input) {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -138,6 +162,7 @@
     };
   }
 
+  // Calculate the area of a polygon (for top view)
   function polygonArea(points) {
     let area = 0;
     for (let i = 0; i < points.length; i++) {
@@ -147,6 +172,7 @@
     return Math.abs(area) / 2;
   }
 
+  // Estimate the purity based on the images and weight
   function estimatePurity() {
     const weight = parseFloat(document.getElementById("dryWeight").value);
     const resultBox = document.getElementById("result");
