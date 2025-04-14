@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gold Purity Estimator - Option B</title>
-  <script src="https://docs.opencv.org/4.5.2/opencv.js"></script>
+  <script async src="https://docs.opencv.org/4.5.2/opencv.js" onload="onOpenCvReady();" ></script>
   <style>
     body {
       background-color: #1a1a1a;
@@ -32,160 +32,131 @@
     button {
       background-color: #c7a332;
       cursor: pointer;
-      font-weight: bold;
     }
     canvas {
       max-width: 100%;
       margin-top: 10px;
-      border: 1px solid #444;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 1.1em;
-    }
-    #loadingMessage {
-      font-weight: bold;
-      color: #c7a332;
-      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Option B: Image-Based Gold Purity Estimator</h1>
-    <div id="loadingMessage">Loading OpenCV.js, please wait...</div>
 
-    <label for="shape">Select Gold Object Type:</label>
-    <select id="shape" disabled>
+    <label>Select Gold Object Type:</label>
+    <select id="shape">
       <option value="rod">Rod</option>
       <option value="bar">Bar</option>
       <option value="coin">Coin</option>
       <option value="nugget">Irregular</option>
     </select>
 
-    <label for="dryWeight">Dry Weight (g):</label>
-    <input type="number" id="dryWeight" step="any" disabled>
+    <label>Dry Weight (g):</label>
+    <input type="number" id="dryWeight" step="any">
 
-    <input type="file" id="imageInput" accept="image/*" disabled>
-    <button id="analyzeBtn" onclick="processImage()" disabled>Analyze Photo</button>
-
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="processImage()">Analyze Photo</button>
     <canvas id="canvas"></canvas>
 
     <div id="result"></div>
   </div>
 
   <script>
-    // Wait until OpenCV is fully loaded
-    let readyCheck = setInterval(() => {
-      if (cv && cv.imread) {
-        clearInterval(readyCheck);
-        document.getElementById("loadingMessage").innerText = "OpenCV.js is ready.";
-        document.getElementById("shape").disabled = false;
-        document.getElementById("dryWeight").disabled = false;
-        document.getElementById("imageInput").disabled = false;
-        document.getElementById("analyzeBtn").disabled = false;
-      }
-    }, 100);
-  </script>
+    let cvReady = false;
+    function onOpenCvReady() {
+      cvReady = true;
+    }
 
-  <script>
     function processImage() {
-      const input = document.getElementById("imageInput");
+      if (!cvReady) {
+        alert("OpenCV.js not yet loaded. Please wait.");
+        return;
+      }
+
+      const fileInput = document.getElementById('imageInput');
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const shape = document.getElementById("shape").value;
-      const resultDiv = document.getElementById("result");
-
-      if (!input.files.length || isNaN(dryWeight)) {
-        alert("Please select a photo and enter dry weight.");
+      if (!fileInput.files.length || isNaN(dryWeight)) {
+        alert("Please select an image and enter dry weight.");
         return;
       }
 
       const img = new Image();
       img.onload = () => {
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
 
-        let src = cv.imread(canvas);
-        let gray = new cv.Mat();
+        const src = cv.imread(canvas);
+        const gray = new cv.Mat();
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
         cv.medianBlur(gray, gray, 5);
 
-        let circles = new cv.Mat();
+        const circles = new cv.Mat();
         cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 50, 100, 30, 10, 100);
-
         if (circles.cols < 1) {
-          resultDiv.innerHTML = "<p style='color: red;'>Reference coin not detected. Please retake the photo from directly above with good lighting.</p>";
+          alert("Reference coin not detected. Try retaking from directly above.");
           src.delete(); gray.delete(); circles.delete();
           return;
         }
 
-        const coinRadius = circles.data32F[2];
+        let coinRadius = circles.data32F[2];
         const coinPixelDiameter = coinRadius * 2;
-        const coinRealDiameterMM = 26.0;
-        const scale = coinRealDiameterMM / coinPixelDiameter;
+        const coinMM = 26.0;
 
-        let thresh = new cv.Mat();
+        const scale = coinMM / coinPixelDiameter;
+
+        // Detect largest contour for gold object
+        const thresh = new cv.Mat();
         cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
 
-        let contours = new cv.MatVector();
-        let hierarchy = new cv.Mat();
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
         cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-        if (contours.size() === 0) {
-          resultDiv.innerHTML = "<p style='color: red;'>Gold object not detected. Ensure good contrast with background.</p>";
-          src.delete(); gray.delete(); circles.delete(); thresh.delete();
-          contours.delete(); hierarchy.delete();
-          return;
-        }
-
-        let maxContour = contours.get(0);
-        let maxArea = cv.contourArea(maxContour);
-
-        for (let i = 1; i < contours.size(); i++) {
-          let area = cv.contourArea(contours.get(i));
+        let maxArea = 0, maxContour = null;
+        for (let i = 0; i < contours.size(); i++) {
+          const area = cv.contourArea(contours.get(i));
           if (area > maxArea) {
             maxArea = area;
             maxContour = contours.get(i);
           }
         }
 
-        const boundingRect = cv.boundingRect(maxContour);
+        let boundingRect = cv.boundingRect(maxContour);
         const widthMM = boundingRect.width * scale;
         const heightMM = boundingRect.height * scale;
 
         let volumeCM3 = 0;
-
         if (shape === "rod") {
           const radius = widthMM / 2 / 10;
           const height = heightMM / 10;
           volumeCM3 = Math.PI * radius * radius * height;
         } else if (shape === "bar") {
-          volumeCM3 = (widthMM / 10) * (heightMM / 10) * 0.5;
+          volumeCM3 = (widthMM / 10) * (heightMM / 10) * 0.5; // 0.5cm thick assumption
         } else if (shape === "coin") {
           const radius = widthMM / 2 / 10;
-          const thickness = 0.15;
-          volumeCM3 = Math.PI * radius * radius * thickness;
+          const height = 0.15; // 1.5mm thickness
+          volumeCM3 = Math.PI * radius * radius * height;
         } else {
-          volumeCM3 = (maxArea * scale * scale) / 100;
+          volumeCM3 = maxArea * scale * scale / 100; // approximate for irregular
         }
 
         const density = dryWeight / volumeCM3;
         const purity = Math.min(1000, Math.max(0, Math.round((density / 19.3) * 1000)));
 
-        resultDiv.innerHTML = `
+        document.getElementById('result').innerHTML = `
           <p><b>Estimated Volume:</b> ${volumeCM3.toFixed(2)} cm³</p>
-          <p><b>Estimated Density:</b> ${density.toFixed(2)} g/cm³</p>
+          <p><b>Density:</b> ${density.toFixed(2)} g/cm³</p>
           <p><b>Estimated Purity:</b> ${purity} / 1000</p>
         `;
 
-        src.delete(); gray.delete(); circles.delete();
-        thresh.delete(); contours.delete(); hierarchy.delete();
+        src.delete(); gray.delete(); circles.delete(); thresh.delete();
+        contours.delete(); hierarchy.delete();
       };
-
-      img.src = URL.createObjectURL(input.files[0]);
+      img.src = URL.createObjectURL(fileInput.files[0]);
     }
   </script>
 </body>
