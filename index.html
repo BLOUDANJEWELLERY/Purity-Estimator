@@ -1,140 +1,168 @@
-<!-- /gold-purity-image-estimator.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gold Estimator via Image</title>
+  <title>Gold Purity Estimator (Image + Auto-Detect)</title>
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
   <style>
-    body {
-      background-color: #111;
-      color: white;
-      font-family: sans-serif;
-      padding: 20px;
-    }
-    .canvas-box {
-      margin: 20px 0;
-    }
-    canvas {
-      border: 1px solid #555;
-      max-width: 100%;
-    }
-    input, button {
-      margin: 10px 0;
-      padding: 8px;
-      width: 100%;
-      background: #222;
-      color: white;
-      border: none;
-      border-radius: 5px;
-    }
-    button {
-      background-color: gold;
-      color: black;
-      cursor: pointer;
-    }
-    .result {
-      background: #222;
-      padding: 10px;
-      margin-top: 15px;
-      border-left: 4px solid gold;
-    }
+    body { background-color: #111; color: white; font-family: sans-serif; padding: 20px; }
+    canvas { border: 1px solid #444; max-width: 100%; margin-top: 10px; }
+    input, button { margin: 10px 0; padding: 8px; width: 100%; background: #222; color: white; border: none; border-radius: 5px; }
+    button { background-color: gold; color: black; cursor: pointer; }
+    .result { background: #222; padding: 10px; margin-top: 15px; border-left: 4px solid gold; }
+    .section { margin: 25px 0; }
+    .tutorial { background: #222; padding: 15px; margin-top: 10px; border-left: 4px solid #4caf50; display: none; }
   </style>
 </head>
 <body>
 
-<h1>Gold Purity Estimator (2-View Image)</h1>
+<h1>Gold Purity Estimator (2-View + Auto-Scale)</h1>
 
-<div>
-  <label>Dry Weight (g):</label>
-  <input type="number" id="dryWeight" placeholder="e.g. 15.3">
+<button onclick="document.getElementById('tutorial').style.display='block'">Show Step-by-Step Tutorial</button>
 
-  <label>Real-world diameter of reference object in cm (e.g. coin):</label>
-  <input type="number" id="refSize" placeholder="e.g. 2.4">
-
-  <div class="canvas-box">
-    <label>Upload Top View:</label>
-    <input type="file" accept="image/*" onchange="loadImage(this, 'topCanvas')">
-    <canvas id="topCanvas" width="400" height="400"></canvas>
-    <p>Draw the top outline of gold item. Then mark the reference object (e.g. coin).</p>
-  </div>
-
-  <div class="canvas-box">
-    <label>Upload Side View:</label>
-    <input type="file" accept="image/*" onchange="loadImage(this, 'sideCanvas')">
-    <canvas id="sideCanvas" width="400" height="400"></canvas>
-    <p>Draw a line from base to top to mark the gold item's height.</p>
-  </div>
-
-  <button onclick="calculateFromImages()">Estimate Purity</button>
-
-  <div id="result" class="result"></div>
+<div id="tutorial" class="tutorial">
+  <h3>How to Use</h3>
+  <ol>
+    <li>Weigh your gold item and note its dry weight in grams.</li>
+    <li>Take <b>two images</b> of the gold item:
+      <ul>
+        <li><b>Top View</b>: Include a round coin (like a 2.4 cm coin) next to the gold item.</li>
+        <li><b>Side View</b>: Show the full vertical height.</li>
+      </ul>
+    </li>
+    <li>Upload the top image. The tool will auto-detect the coin.</li>
+    <li>Draw around the gold shape (top view).</li>
+    <li>Upload side view and draw a vertical height line.</li>
+    <li>Click "Estimate Purity".</li>
+  </ol>
 </div>
 
-<script>
-  let topCtx, sideCtx, topPoints = [], refPoints = [], heightLine = [];
+<div class="section">
+  <label>Dry Weight (grams):</label>
+  <input type="number" id="dryWeight" placeholder="e.g. 15.3">
+</div>
 
-  function loadImage(input, canvasId) {
-    const canvas = document.getElementById(canvasId);
-    const ctx = canvas.getContext("2d");
+<div class="section">
+  <label>Upload Top View Image (with coin):</label>
+  <input type="file" accept="image/*" onchange="loadTopImage(this)">
+  <canvas id="topCanvas" width="400" height="400"></canvas>
+</div>
+
+<div class="section">
+  <label>Upload Side View Image:</label>
+  <input type="file" accept="image/*" onchange="loadSideImage(this)">
+  <canvas id="sideCanvas" width="400" height="400"></canvas>
+</div>
+
+<button onclick="estimatePurity()">Estimate Purity</button>
+
+<div id="result" class="result"></div>
+
+<script>
+  let topCanvas = document.getElementById("topCanvas");
+  let sideCanvas = document.getElementById("sideCanvas");
+  let topCtx = topCanvas.getContext("2d");
+  let sideCtx = sideCanvas.getContext("2d");
+  let topPoints = [], heightLine = [];
+  let pxPerCm = null;
+
+  function loadTopImage(input) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      const img = new Image();
+      let img = new Image();
       img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        if (canvasId === "topCanvas") topCtx = ctx;
-        else sideCtx = ctx;
+        topCanvas.width = img.width;
+        topCanvas.height = img.height;
+        topCtx.drawImage(img, 0, 0);
+        detectCoinScale(img);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+    topCanvas.onclick = (e) => {
+      const rect = topCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      topCtx.fillStyle = "red";
+      topCtx.beginPath();
+      topCtx.arc(x, y, 3, 0, Math.PI * 2);
+      topCtx.fill();
+      topPoints.push({ x, y });
+    };
+  }
+
+  function detectCoinScale(img) {
+    let mat = cv.imread(img);
+    let gray = new cv.Mat();
+    cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY);
+    let circles = new cv.Mat();
+    cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 30, 100, 30, 10, 100);
+    if (circles.cols > 0) {
+      let circle = circles.data32F.slice(0, 3);
+      let radiusPx = circle[2];
+      let coinDiameterCm = 2.4;
+      pxPerCm = radiusPx * 2 / coinDiameterCm;
+      topCtx.strokeStyle = "lime";
+      topCtx.beginPath();
+      topCtx.arc(circle[0], circle[1], radiusPx, 0, 2 * Math.PI);
+      topCtx.stroke();
+    } else {
+      alert("Coin not detected. Please outline reference manually.");
+    }
+    mat.delete(); gray.delete(); circles.delete();
+  }
+
+  function loadSideImage(input) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      let img = new Image();
+      img.onload = () => {
+        sideCanvas.width = img.width;
+        sideCanvas.height = img.height;
+        sideCtx.drawImage(img, 0, 0);
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(input.files[0]);
 
-    canvas.onclick = (e) => {
-      const rect = canvas.getBoundingClientRect();
+    sideCanvas.onclick = (e) => {
+      const rect = sideCanvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      ctx.fillStyle = "red";
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (canvasId === "topCanvas") {
-        if (refPoints.length < 2) refPoints.push({x, y});
-        else topPoints.push({x, y});
-      } else if (canvasId === "sideCanvas") {
-        if (heightLine.length < 2) heightLine.push({x, y});
-      }
+      sideCtx.fillStyle = "yellow";
+      sideCtx.beginPath();
+      sideCtx.arc(x, y, 3, 0, Math.PI * 2);
+      sideCtx.fill();
+      if (heightLine.length < 2) heightLine.push({ x, y });
     };
   }
 
-  function calculateFromImages() {
-    const dryWeight = parseFloat(document.getElementById("dryWeight").value);
-    const refSize = parseFloat(document.getElementById("refSize").value);
+  function polygonArea(points) {
+    let area = 0;
+    for (let i = 0; i < points.length; i++) {
+      let j = (i + 1) % points.length;
+      area += points[i].x * points[j].y - points[j].x * points[i].y;
+    }
+    return Math.abs(area) / 2;
+  }
+
+  function estimatePurity() {
+    const weight = parseFloat(document.getElementById("dryWeight").value);
     const resultBox = document.getElementById("result");
 
-    if (!dryWeight || !refSize || refPoints.length < 2 || topPoints.length < 3 || heightLine.length < 2) {
-      alert("Please complete all drawings and inputs.");
+    if (!weight || topPoints.length < 3 || heightLine.length < 2 || !pxPerCm) {
+      alert("Please complete drawing and ensure coin was detected.");
       return;
     }
 
-    const pixelDist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
-    const scale = refSize / pixelDist(refPoints[0], refPoints[1]);
-
-    let areaPixels = 0;
-    for (let i = 0; i < topPoints.length; i++) {
-      const j = (i + 1) % topPoints.length;
-      areaPixels += (topPoints[i].x * topPoints[j].y - topPoints[j].x * topPoints[i].y);
-    }
-    areaPixels = Math.abs(areaPixels) / 2;
-    const areaCm2 = areaPixels * Math.pow(scale, 2);
-
-    const heightPixels = pixelDist(heightLine[0], heightLine[1]);
-    const heightCm = heightPixels * scale;
+    const pixelDist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const areaPx = polygonArea(topPoints);
+    const areaCm2 = areaPx / (pxPerCm * pxPerCm);
+    const heightCm = pixelDist(heightLine[0], heightLine[1]) / pxPerCm;
 
     const volume = areaCm2 * heightCm;
-    const density = dryWeight / volume;
+    const density = weight / volume;
     const purity = Math.round(Math.min(1000, (density / 19.3) * 1000));
 
     resultBox.innerHTML = `
