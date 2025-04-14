@@ -72,6 +72,7 @@
     let cvReady = false;
     function onOpenCvReady() {
       cvReady = true;
+      console.log("OpenCV.js is ready.");
     }
 
     function handleFileChange() {
@@ -129,6 +130,7 @@
           return;
         }
 
+        console.log("Reference coin detected.");
         let coinRadius = circles.data32F[2];
         const coinPixelDiameter = coinRadius * 2;
         const coinMM = 26.0;
@@ -178,6 +180,10 @@
           <p><b>Density:</b> ${density.toFixed(2)} g/cm³</p>
           <p><b>Estimated Purity:</b> ${purity} / 1000</p>
         `;
+
+        console.log(`Volume: ${volumeCM3.toFixed(2)} cm³`);
+        console.log(`Density: ${density.toFixed(2)} g/cm³`);
+        console.log(`Purity: ${purity}`);
 
         src.delete(); gray.delete(); circles.delete(); thresh.delete();
         contours.delete(); hierarchy.delete();
