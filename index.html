@@ -94,6 +94,7 @@
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
         cv.medianBlur(gray, gray, 5);
 
+        // Coin detection
         const circles = new cv.Mat();
         cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 50, 100, 30, 10, 100);
         if (circles.cols < 1) {
@@ -102,13 +103,14 @@
           return;
         }
 
+        // Assume first circle is the coin
         let coinRadius = circles.data32F[2];
         const coinPixelDiameter = coinRadius * 2;
         const coinMM = 26.0;
 
         const scale = coinMM / coinPixelDiameter;
 
-        // Detect largest contour for gold object
+        // Thresholding to isolate the object
         const thresh = new cv.Mat();
         cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
 
@@ -123,6 +125,13 @@
             maxArea = area;
             maxContour = contours.get(i);
           }
+        }
+
+        // Handle irregular shapes: Convex hull
+        if (shape === "nugget" && maxContour !== null) {
+          const hull = new cv.Mat();
+          cv.convexHull(maxContour, hull, false, true);
+          maxContour = hull;
         }
 
         let boundingRect = cv.boundingRect(maxContour);
