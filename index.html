@@ -1,30 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Gold Purity Estimator - Camera Based</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <title>Gold Purity Estimator (Camera-Based)</title>
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
   <style>
     body {
       background-color: #1a1a1a;
-      color: white;
+      color: #fff;
       font-family: Arial, sans-serif;
       padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background-color: #2c2c2c;
+      padding: 20px;
+      border-radius: 10px;
     }
     h1, h2 {
       color: #c7a332;
       text-align: center;
     }
-    .container {
-      max-width: 900px;
-      margin: auto;
-    }
     input, select, button {
       width: 100%;
       padding: 10px;
       margin-top: 10px;
-      border: none;
       border-radius: 5px;
+      border: none;
       background-color: #3c3c3c;
       color: white;
     }
@@ -32,25 +35,29 @@
       background-color: #c7a332;
       cursor: pointer;
     }
-    canvas, video, img {
-      display: block;
-      margin: 10px auto;
+    canvas {
+      margin-top: 15px;
       max-width: 100%;
-      border-radius: 10px;
     }
     .result-box {
       background-color: #444;
       padding: 15px;
       border-radius: 5px;
-      margin-top: 20px;
+      margin-top: 15px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Gold Purity Estimator</h1>
-    <h2>Option B: Camera-Based Volume Estimation</h2>
+    <h1>Gold Purity Estimator (Option B)</h1>
 
+    <label>Upload Image (Top-Down with 100 Fils Coin):</label>
+    <input type="file" accept="image/*" onchange="handleImage(event)">
+
+    <label>Dry Weight of Gold (g):</label>
+    <input type="number" id="dryWeight" step="any">
+
+    <label>Gold Shape:</label>
     <select id="shape">
       <option value="rod">Rod/Cylinder</option>
       <option value="bar">Bar/Block</option>
@@ -58,149 +65,123 @@
       <option value="irregular">Irregular/Nugget</option>
     </select>
 
-    <input type="number" id="dryWeight" placeholder="Enter Dry Weight (g)" step="any">
+    <button onclick="calculateFromImage()">Estimate Purity</button>
+    <button onclick="reset()">Retake Photo</button>
 
-    <video id="video" width="640" height="480" autoplay playsinline></video>
-    <button onclick="capture()">Capture Image</button>
-    <button onclick="retake()" style="display:none;" id="retakeBtn">Retake</button>
-    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
-    <img id="photoPreview" src="" style="display:none;" />
-
-    <div id="result" class="result-box"></div>
+    <canvas id="canvas"></canvas>
+    <div class="result-box" id="resultBox"></div>
   </div>
 
-  <script async src="https://docs.opencv.org/4.5.5/opencv.js" onload="onOpenCvReady();"></script>
   <script>
-    let video = document.getElementById('video');
-    let canvas = document.getElementById('canvas');
-    let photoPreview = document.getElementById('photoPreview');
-    let retakeBtn = document.getElementById('retakeBtn');
+    let src = null, imgElement = null;
 
-    function startCamera() {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-        .then(stream => {
-          video.srcObject = stream;
-        })
-        .catch(err => {
-          alert("Camera access denied: " + err);
-        });
+    function handleImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        imgElement = new Image();
+        imgElement.onload = function() {
+          const canvas = document.getElementById("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = imgElement.width;
+          canvas.height = imgElement.height;
+          ctx.drawImage(imgElement, 0, 0);
+        };
+        imgElement.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
-    function capture() {
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      let dataUrl = canvas.toDataURL('image/png');
-      photoPreview.src = dataUrl;
-      photoPreview.style.display = 'block';
-      retakeBtn.style.display = 'block';
-      processImage(canvas);
+    function reset() {
+      document.getElementById("canvas").getContext("2d").clearRect(0, 0, 10000, 10000);
+      document.getElementById("resultBox").innerHTML = "";
+      document.querySelector("input[type='file']").value = "";
     }
 
-    function retake() {
-      photoPreview.style.display = 'none';
-      retakeBtn.style.display = 'none';
-      document.getElementById('result').innerHTML = '';
-    }
-
-    function onOpenCvReady() {
-      startCamera();
-    }
-
-    function processImage(canvas) {
-      let dryWeight = parseFloat(document.getElementById("dryWeight").value);
-      let shape = document.getElementById("shape").value;
-      if (isNaN(dryWeight) || dryWeight <= 0) {
-        alert("Please enter a valid dry weight.");
+    async function calculateFromImage() {
+      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
+      if (isNaN(dryWeight)) {
+        alert("Enter dry weight.");
         return;
       }
 
-      let src = cv.imread(canvas);
+      const canvas = document.getElementById("canvas");
+      if (!canvas.width) {
+        alert("Please upload an image.");
+        return;
+      }
+
+      if (!cv || !cv.imread) {
+        alert("OpenCV.js not yet loaded.");
+        return;
+      }
+
+      const mat = cv.imread(canvas);
       let gray = new cv.Mat();
-      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-      cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
+      cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY, 0);
+      cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
       cv.threshold(gray, gray, 60, 255, cv.THRESH_BINARY);
 
+      // Detect contours
       let contours = new cv.MatVector();
       let hierarchy = new cv.Mat();
       cv.findContours(gray, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-      let coinDiameterMM = 26.0;
-      let pixelsPerMM = 1;
-      let coinContour = null;
-      let coinArea = Math.PI * Math.pow(coinDiameterMM / 2, 2);
+      let coinDiameterPx = null;
+      let goldAreaPx = 0;
 
-      // Detect largest circular object (assume it's the coin)
-      let maxCircularity = 0;
       for (let i = 0; i < contours.size(); i++) {
         let cnt = contours.get(i);
         let area = cv.contourArea(cnt);
         let perimeter = cv.arcLength(cnt, true);
         let circularity = 4 * Math.PI * area / (perimeter * perimeter);
-        if (circularity > maxCircularity && circularity > 0.7 && area > 1000) {
-          maxCircularity = circularity;
-          coinContour = cnt;
+
+        if (area > 100 && circularity > 0.7 && circularity < 1.2) {
+          // Coin found
+          let rect = cv.boundingRect(cnt);
+          coinDiameterPx = (rect.width + rect.height) / 2;
+        } else if (area > goldAreaPx) {
+          goldAreaPx = area; // assume largest other object = gold
         }
+        cnt.delete();
       }
 
-      if (coinContour) {
-        let coinRect = cv.boundingRect(coinContour);
-        let coinPixelDiameter = (coinRect.width + coinRect.height) / 2;
-        pixelsPerMM = coinPixelDiameter / coinDiameterMM;
-      } else {
-        alert("Reference coin not detected. Please retry with a clearer image.");
-        src.delete(); gray.delete(); contours.delete(); hierarchy.delete();
+      gray.delete(); hierarchy.delete(); contours.delete();
+
+      if (!coinDiameterPx || goldAreaPx === 0) {
+        document.getElementById("resultBox").innerHTML = "Reference coin not detected or gold object missing.";
+        mat.delete();
         return;
       }
 
-      // Find largest non-coin object (assume it's the gold)
-      let maxArea = 0;
-      let goldContour = null;
-      for (let i = 0; i < contours.size(); i++) {
-        let cnt = contours.get(i);
-        if (cnt === coinContour) continue;
-        let area = cv.contourArea(cnt);
-        if (area > maxArea) {
-          maxArea = area;
-          goldContour = cnt;
-        }
-      }
+      // Scale area to real world
+      const coinDiameterMm = 26.0;
+      const pixelToMm = coinDiameterMm / coinDiameterPx;
+      const goldAreaMm2 = goldAreaPx * (pixelToMm ** 2);
 
-      if (!goldContour) {
-        alert("Gold object not detected.");
-        src.delete(); gray.delete(); contours.delete(); hierarchy.delete();
-        return;
-      }
+      // Estimate height from shape
+      const shape = document.getElementById("shape").value;
+      let heightMm = 1.5; // default
+      if (shape === "rod") heightMm = 15;
+      else if (shape === "bar") heightMm = 10;
+      else if (shape === "coin") heightMm = 1.5;
+      else if (shape === "irregular") heightMm = 8;
 
-      let goldRect = cv.boundingRect(goldContour);
-      let widthMM = goldRect.width / pixelsPerMM;
-      let heightMM = goldRect.height / pixelsPerMM;
+      const volumeCm3 = (goldAreaMm2 * heightMm) / 1000; // mm³ to cm³
+      const density = dryWeight / volumeCm3;
+      const goldDensity = 19.3;
+      const purity = Math.round((density / goldDensity) * 1000);
 
-      let volume = 0;
-      if (shape === "rod") {
-        let radius = widthMM / 2;
-        volume = Math.PI * radius * radius * heightMM;
-      } else if (shape === "bar") {
-        volume = widthMM * heightMM * 1.5; // Assuming 1.5mm average thickness
-      } else if (shape === "coin") {
-        let radius = widthMM / 2;
-        volume = Math.PI * radius * radius * 1.5;
-      } else {
-        volume = (widthMM * heightMM * 1.2);
-      }
-
-      volume /= 1000; // mm³ to cm³
-      let density = dryWeight / volume;
-      let goldDensity = 19.3;
-      let purity = Math.min(1000, Math.round((density / goldDensity) * 1000));
-
-      document.getElementById("result").innerHTML = `
-        <b>Estimated Width:</b> ${widthMM.toFixed(2)} mm<br>
-        <b>Estimated Height:</b> ${heightMM.toFixed(2)} mm<br>
-        <b>Estimated Volume:</b> ${volume.toFixed(2)} cm³<br>
+      document.getElementById("resultBox").innerHTML = `
+        <b>Detected Area:</b> ${goldAreaMm2.toFixed(2)} mm²<br>
+        <b>Assumed Height:</b> ${heightMm} mm<br>
+        <b>Volume:</b> ${volumeCm3.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purity} / 1000
+        <b>Estimated Purity:</b> ${Math.min(purity, 1000)} / 1000
       `;
 
-      src.delete(); gray.delete(); contours.delete(); hierarchy.delete();
+      mat.delete();
     }
   </script>
 </body>
