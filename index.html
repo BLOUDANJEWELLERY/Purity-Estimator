@@ -64,12 +64,16 @@
   <script>
     let cvReady = false;
     function onOpenCvReady() {
+      console.log("OpenCV.js is ready.");
       cvReady = true;
     }
 
     function processImage() {
+      console.log("Processing image...");
+      
       if (!cvReady) {
         alert("OpenCV.js not yet loaded. Please wait.");
+        console.log("OpenCV is not ready.");
         return;
       }
 
@@ -78,16 +82,20 @@
       const shape = document.getElementById("shape").value;
       if (!fileInput.files.length || isNaN(dryWeight)) {
         alert("Please select an image and enter dry weight.");
+        console.log("Missing image or dry weight.");
         return;
       }
 
       const img = new Image();
       img.onload = () => {
+        console.log("Image loaded.");
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
+        console.log("Image drawn on canvas.");
 
         const src = cv.imread(canvas);
         const gray = new cv.Mat();
@@ -99,6 +107,7 @@
         cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 50, 100, 30, 10, 100);
         if (circles.cols < 1) {
           alert("Reference coin not detected. Try retaking from directly above.");
+          console.log("Coin not detected.");
           src.delete(); gray.delete(); circles.delete();
           return;
         }
@@ -165,6 +174,7 @@
         src.delete(); gray.delete(); circles.delete(); thresh.delete();
         contours.delete(); hierarchy.delete();
       };
+
       img.src = URL.createObjectURL(fileInput.files[0]);
     }
   </script>
