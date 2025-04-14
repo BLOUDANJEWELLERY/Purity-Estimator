@@ -114,24 +114,22 @@
       let coinDiameterPx = coinRadiusPx * 2;
       const realCoinDiameter = 26.0; // mm
 
-      // Fixing px/mm scaling - Ensure it's realistic
+      // Fixed scaling factor - Use the real coin diameter and detect the pixels
       let pxPerMM = coinDiameterPx / realCoinDiameter;  // px per millimeter
       console.log(`Detected coin diameter in pixels: ${coinDiameterPx} px`);
       console.log(`Scaling factor (px/mm): ${pxPerMM.toFixed(2)}`);
 
-      // Check for reasonable scaling factor
+      // Ensure px/mm is realistic (reasonable range)
       if (pxPerMM < 0.1 || pxPerMM > 10) {
         alert("Scaling factor seems unrealistic. Please upload a better image.");
         return;
       }
 
-      // Calculate gold area based on the full image and the coin area
+      // Convert area from pixels to millimeters squared
       let goldAreaPx = (src.rows * src.cols) - (Math.PI * coinRadiusPx * coinRadiusPx);
       let goldAreaMM = goldAreaPx / (pxPerMM * pxPerMM);  // Convert pixel area to millimeters squared
 
       let volume = 0;
-
-      // Calculate volume based on selected shape
       switch (shape) {
         case "rod":
           let rodRadiusMM = Math.sqrt(goldAreaMM / Math.PI); // Approximate radius from area
