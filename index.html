@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Gold Purity Estimator (Camera-Based)</title>
+  <title>Gold Purity Estimator (HoughCircles)</title>
   <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
   <style>
     body {
@@ -49,7 +49,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>Gold Purity Estimator (Option B)</h1>
+    <h1>Gold Purity Estimator (HoughCircles)</h1>
 
     <label>Upload Image (Top-Down with 100 Fils Coin):</label>
     <input type="file" accept="image/*" onchange="handleImage(event)">
@@ -73,7 +73,7 @@
   </div>
 
   <script>
-    let src = null, imgElement = null;
+    let imgElement = null;
 
     function handleImage(event) {
       const file = event.target.files[0];
@@ -117,52 +117,58 @@
         return;
       }
 
-      const mat = cv.imread(canvas);
+      let src = cv.imread(canvas);
       let gray = new cv.Mat();
-      cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY, 0);
-      cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-      cv.threshold(gray, gray, 60, 255, cv.THRESH_BINARY);
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      cv.GaussianBlur(gray, gray, new cv.Size(9, 9), 2, 2);
 
-      // Detect contours
-      let contours = new cv.MatVector();
-      let hierarchy = new cv.Mat();
-      cv.findContours(gray, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+      // Detect circle (100 fils coin)
+      let circles = new cv.Mat();
+      cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 50, 100, 30, 10, 200);
 
-      let coinDiameterPx = null;
-      let goldAreaPx = 0;
-
-      for (let i = 0; i < contours.size(); i++) {
-        let cnt = contours.get(i);
-        let area = cv.contourArea(cnt);
-        let perimeter = cv.arcLength(cnt, true);
-        let circularity = 4 * Math.PI * area / (perimeter * perimeter);
-
-        if (area > 100 && circularity > 0.7 && circularity < 1.2) {
-          // Coin found
-          let rect = cv.boundingRect(cnt);
-          coinDiameterPx = (rect.width + rect.height) / 2;
-        } else if (area > goldAreaPx) {
-          goldAreaPx = area; // assume largest other object = gold
-        }
-        cnt.delete();
-      }
-
-      gray.delete(); hierarchy.delete(); contours.delete();
-
-      if (!coinDiameterPx || goldAreaPx === 0) {
-        document.getElementById("resultBox").innerHTML = "Reference coin not detected or gold object missing.";
-        mat.delete();
+      if (circles.cols < 1) {
+        document.getElementById("resultBox").innerHTML = "Reference coin not detected.";
+        src.delete(); gray.delete(); circles.delete();
         return;
       }
 
-      // Scale area to real world
+      // Use first detected circle
+      let x = circles.data32F[0];
+      let y = circles.data32F[1];
+      let radiusPx = circles.data32F[2];
+      const coinDiameterPx = radiusPx * 2;
+
+      // Scale detection
       const coinDiameterMm = 26.0;
       const pixelToMm = coinDiameterMm / coinDiameterPx;
-      const goldAreaMm2 = goldAreaPx * (pixelToMm ** 2);
 
-      // Estimate height from shape
+      // Segment other object (gold) using threshold
+      let binary = new cv.Mat();
+      cv.threshold(gray, binary, 50, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+
+      // Find contours for gold
+      let contours = new cv.MatVector();
+      let hierarchy = new cv.Mat();
+      cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      let maxArea = 0;
+      for (let i = 0; i < contours.size(); i++) {
+        let cnt = contours.get(i);
+        let area = cv.contourArea(cnt);
+        if (area > maxArea) maxArea = area;
+        cnt.delete();
+      }
+
+      if (maxArea === 0) {
+        document.getElementById("resultBox").innerHTML = "Gold object not detected.";
+        src.delete(); gray.delete(); circles.delete(); binary.delete(); contours.delete(); hierarchy.delete();
+        return;
+      }
+
+      const goldAreaMm2 = maxArea * (pixelToMm ** 2);
       const shape = document.getElementById("shape").value;
-      let heightMm = 1.5; // default
+
+      let heightMm = 1.5;
       if (shape === "rod") heightMm = 15;
       else if (shape === "bar") heightMm = 10;
       else if (shape === "coin") heightMm = 1.5;
@@ -174,14 +180,16 @@
       const purity = Math.round((density / goldDensity) * 1000);
 
       document.getElementById("resultBox").innerHTML = `
-        <b>Detected Area:</b> ${goldAreaMm2.toFixed(2)} mm²<br>
+        <b>Detected Coin Radius:</b> ${radiusPx.toFixed(2)} px<br>
+        <b>Scale:</b> ${pixelToMm.toFixed(4)} mm/px<br>
+        <b>Gold Area:</b> ${goldAreaMm2.toFixed(2)} mm²<br>
         <b>Assumed Height:</b> ${heightMm} mm<br>
         <b>Volume:</b> ${volumeCm3.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
         <b>Estimated Purity:</b> ${Math.min(purity, 1000)} / 1000
       `;
 
-      mat.delete();
+      src.delete(); gray.delete(); circles.delete(); binary.delete(); contours.delete(); hierarchy.delete();
     }
   </script>
 </body>
