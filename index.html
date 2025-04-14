@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gold Purity Estimator - Option B</title>
-  <script async src="https://docs.opencv.org/4.5.2/opencv.js" onload="onOpenCvReady();"></script>
+  <script src="https://docs.opencv.org/4.5.2/opencv.js"></script>
   <style>
     body {
       background-color: #1a1a1a;
@@ -43,14 +43,20 @@
       margin-top: 20px;
       font-size: 1.1em;
     }
+    #loadingMessage {
+      font-weight: bold;
+      color: #c7a332;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Option B: Image-Based Gold Purity Estimator</h1>
+    <div id="loadingMessage">Loading OpenCV.js, please wait...</div>
 
     <label for="shape">Select Gold Object Type:</label>
-    <select id="shape">
+    <select id="shape" disabled>
       <option value="rod">Rod</option>
       <option value="bar">Bar</option>
       <option value="coin">Coin</option>
@@ -58,10 +64,10 @@
     </select>
 
     <label for="dryWeight">Dry Weight (g):</label>
-    <input type="number" id="dryWeight" step="any" placeholder="Enter dry weight in grams">
+    <input type="number" id="dryWeight" step="any" disabled>
 
-    <input type="file" id="imageInput" accept="image/*">
-    <button onclick="processImage()">Analyze Photo</button>
+    <input type="file" id="imageInput" accept="image/*" disabled>
+    <button id="analyzeBtn" onclick="processImage()" disabled>Analyze Photo</button>
 
     <canvas id="canvas"></canvas>
 
@@ -69,17 +75,21 @@
   </div>
 
   <script>
-    let cvReady = false;
-    function onOpenCvReady() {
-      cvReady = true;
-    }
-
-    function processImage() {
-      if (!cvReady) {
-        alert("OpenCV is still loading. Please wait a moment.");
-        return;
+    // Wait until OpenCV is fully loaded
+    let readyCheck = setInterval(() => {
+      if (cv && cv.imread) {
+        clearInterval(readyCheck);
+        document.getElementById("loadingMessage").innerText = "OpenCV.js is ready.";
+        document.getElementById("shape").disabled = false;
+        document.getElementById("dryWeight").disabled = false;
+        document.getElementById("imageInput").disabled = false;
+        document.getElementById("analyzeBtn").disabled = false;
       }
+    }, 100);
+  </script>
 
+  <script>
+    function processImage() {
       const input = document.getElementById("imageInput");
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const shape = document.getElementById("shape").value;
@@ -103,12 +113,11 @@
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
         cv.medianBlur(gray, gray, 5);
 
-        // Step 1: Detect Coin (reference object)
         let circles = new cv.Mat();
         cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 50, 100, 30, 10, 100);
 
         if (circles.cols < 1) {
-          resultDiv.innerHTML = "<p style='color: red;'>Reference coin not detected. Please retake the photo directly from above with good lighting.</p>";
+          resultDiv.innerHTML = "<p style='color: red;'>Reference coin not detected. Please retake the photo from directly above with good lighting.</p>";
           src.delete(); gray.delete(); circles.delete();
           return;
         }
@@ -116,9 +125,8 @@
         const coinRadius = circles.data32F[2];
         const coinPixelDiameter = coinRadius * 2;
         const coinRealDiameterMM = 26.0;
-        const scale = coinRealDiameterMM / coinPixelDiameter; // mm per pixel
+        const scale = coinRealDiameterMM / coinPixelDiameter;
 
-        // Step 2: Find gold object contour
         let thresh = new cv.Mat();
         cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
 
@@ -127,7 +135,7 @@
         cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
         if (contours.size() === 0) {
-          resultDiv.innerHTML = "<p style='color: red;'>Gold object not detected. Ensure it contrasts well with the background.</p>";
+          resultDiv.innerHTML = "<p style='color: red;'>Gold object not detected. Ensure good contrast with background.</p>";
           src.delete(); gray.delete(); circles.delete(); thresh.delete();
           contours.delete(); hierarchy.delete();
           return;
@@ -173,7 +181,6 @@
           <p><b>Estimated Purity:</b> ${purity} / 1000</p>
         `;
 
-        // Clean up
         src.delete(); gray.delete(); circles.delete();
         thresh.delete(); contours.delete(); hierarchy.delete();
       };
