@@ -11,10 +11,9 @@
       color: white;
       font-family: Arial, sans-serif;
       padding: 20px;
-      overflow-x: hidden;
     }
     .container {
-      max-width: 100%;
+      max-width: 900px;
       margin: auto;
       background-color: #2c2c2c;
       padding: 20px;
@@ -33,15 +32,16 @@
     button {
       background-color: #c7a332;
       cursor: pointer;
+      font-weight: bold;
     }
     canvas {
-      width: 100%;
+      max-width: 100%;
       margin-top: 10px;
-      display: block;
+      border: 1px solid #444;
     }
-    #errorMessage {
-      color: red;
-      font-weight: bold;
+    #result {
+      margin-top: 20px;
+      font-size: 1.1em;
     }
   </style>
 </head>
@@ -49,7 +49,7 @@
   <div class="container">
     <h1>Option B: Image-Based Gold Purity Estimator</h1>
 
-    <label>Select Gold Object Type:</label>
+    <label for="shape">Select Gold Object Type:</label>
     <select id="shape">
       <option value="rod">Rod</option>
       <option value="bar">Bar</option>
@@ -57,107 +57,99 @@
       <option value="nugget">Irregular</option>
     </select>
 
-    <label>Dry Weight (g):</label>
-    <input type="number" id="dryWeight" step="any">
+    <label for="dryWeight">Dry Weight (g):</label>
+    <input type="number" id="dryWeight" step="any" placeholder="Enter dry weight in grams">
 
-    <input type="file" id="imageInput" accept="image/*" onchange="handleFileChange()">
+    <input type="file" id="imageInput" accept="image/*">
     <button onclick="processImage()">Analyze Photo</button>
+
     <canvas id="canvas"></canvas>
 
     <div id="result"></div>
-    <div id="errorMessage"></div> <!-- For showing error messages -->
   </div>
 
   <script>
     let cvReady = false;
     function onOpenCvReady() {
       cvReady = true;
-      console.log("OpenCV.js is ready.");
-    }
-
-    function handleFileChange() {
-      const fileInput = document.getElementById('imageInput');
-      const file = fileInput.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = new Image();
-          img.onload = function() {
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-          }
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
     }
 
     function processImage() {
       if (!cvReady) {
-        document.getElementById('errorMessage').innerText = "OpenCV.js is not yet ready.";
+        alert("OpenCV is still loading. Please wait a moment.");
         return;
       }
 
-      const fileInput = document.getElementById('imageInput');
+      const input = document.getElementById("imageInput");
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const shape = document.getElementById("shape").value;
-      if (!fileInput.files.length || isNaN(dryWeight)) {
-        document.getElementById('errorMessage').innerText = "Please select an image and enter dry weight.";
+      const resultDiv = document.getElementById("result");
+
+      if (!input.files.length || isNaN(dryWeight)) {
+        alert("Please select a photo and enter dry weight.");
         return;
       }
 
       const img = new Image();
       img.onload = () => {
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
 
-        const src = cv.imread(canvas);
-        const gray = new cv.Mat();
+        let src = cv.imread(canvas);
+        let gray = new cv.Mat();
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
         cv.medianBlur(gray, gray, 5);
 
-        const circles = new cv.Mat();
+        // Step 1: Detect Coin (reference object)
+        let circles = new cv.Mat();
         cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 50, 100, 30, 10, 100);
+
         if (circles.cols < 1) {
-          document.getElementById('errorMessage').innerText = "Reference coin not detected. Try retaking the photo from directly above.";
+          resultDiv.innerHTML = "<p style='color: red;'>Reference coin not detected. Please retake the photo directly from above with good lighting.</p>";
           src.delete(); gray.delete(); circles.delete();
           return;
         }
 
-        console.log("Reference coin detected.");
-        let coinRadius = circles.data32F[2];
+        const coinRadius = circles.data32F[2];
         const coinPixelDiameter = coinRadius * 2;
-        const coinMM = 26.0;
+        const coinRealDiameterMM = 26.0;
+        const scale = coinRealDiameterMM / coinPixelDiameter; // mm per pixel
 
-        const scale = coinMM / coinPixelDiameter;
-
-        const thresh = new cv.Mat();
+        // Step 2: Find gold object contour
+        let thresh = new cv.Mat();
         cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
 
-        const contours = new cv.MatVector();
-        const hierarchy = new cv.Mat();
+        let contours = new cv.MatVector();
+        let hierarchy = new cv.Mat();
         cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-        let maxArea = 0, maxContour = null;
-        for (let i = 0; i < contours.size(); i++) {
-          const area = cv.contourArea(contours.get(i));
+        if (contours.size() === 0) {
+          resultDiv.innerHTML = "<p style='color: red;'>Gold object not detected. Ensure it contrasts well with the background.</p>";
+          src.delete(); gray.delete(); circles.delete(); thresh.delete();
+          contours.delete(); hierarchy.delete();
+          return;
+        }
+
+        let maxContour = contours.get(0);
+        let maxArea = cv.contourArea(maxContour);
+
+        for (let i = 1; i < contours.size(); i++) {
+          let area = cv.contourArea(contours.get(i));
           if (area > maxArea) {
             maxArea = area;
             maxContour = contours.get(i);
           }
         }
 
-        let boundingRect = cv.boundingRect(maxContour);
+        const boundingRect = cv.boundingRect(maxContour);
         const widthMM = boundingRect.width * scale;
         const heightMM = boundingRect.height * scale;
 
         let volumeCM3 = 0;
+
         if (shape === "rod") {
           const radius = widthMM / 2 / 10;
           const height = heightMM / 10;
@@ -166,30 +158,27 @@
           volumeCM3 = (widthMM / 10) * (heightMM / 10) * 0.5;
         } else if (shape === "coin") {
           const radius = widthMM / 2 / 10;
-          const height = 0.15;
-          volumeCM3 = Math.PI * radius * radius * height;
+          const thickness = 0.15;
+          volumeCM3 = Math.PI * radius * radius * thickness;
         } else {
-          volumeCM3 = maxArea * scale * scale / 100;
+          volumeCM3 = (maxArea * scale * scale) / 100;
         }
 
         const density = dryWeight / volumeCM3;
         const purity = Math.min(1000, Math.max(0, Math.round((density / 19.3) * 1000)));
 
-        document.getElementById('result').innerHTML = `
+        resultDiv.innerHTML = `
           <p><b>Estimated Volume:</b> ${volumeCM3.toFixed(2)} cm³</p>
-          <p><b>Density:</b> ${density.toFixed(2)} g/cm³</p>
+          <p><b>Estimated Density:</b> ${density.toFixed(2)} g/cm³</p>
           <p><b>Estimated Purity:</b> ${purity} / 1000</p>
         `;
 
-        console.log(`Volume: ${volumeCM3.toFixed(2)} cm³`);
-        console.log(`Density: ${density.toFixed(2)} g/cm³`);
-        console.log(`Purity: ${purity}`);
-
-        src.delete(); gray.delete(); circles.delete(); thresh.delete();
-        contours.delete(); hierarchy.delete();
+        // Clean up
+        src.delete(); gray.delete(); circles.delete();
+        thresh.delete(); contours.delete(); hierarchy.delete();
       };
 
-      img.src = URL.createObjectURL(fileInput.files[0]);
+      img.src = URL.createObjectURL(input.files[0]);
     }
   </script>
 </body>
