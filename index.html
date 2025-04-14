@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gold Purity Estimator (Camera-Based)</title>
+  <title>Gold Purity Estimator (Upload Method)</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -12,7 +12,7 @@
       padding: 20px;
       text-align: center;
     }
-    canvas, video, img {
+    canvas, img {
       max-width: 100%;
       margin-top: 15px;
     }
@@ -37,14 +37,10 @@
   </style>
 </head>
 <body>
-  <h1>Camera-Based Gold Purity Estimator</h1>
-  
-  <video id="video" width="320" height="240" autoplay></video><br>
-  <button onclick="capture()">Capture Photo</button>
-  <button onclick="retake()">Retake</button><br>
+  <h1>Gold Purity Estimator (Upload Image)</h1>
 
-  <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
-  <br>
+  <input type="file" id="imageInput" accept="image/*"><br>
+  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas><br>
 
   <input type="number" id="weight" placeholder="Enter Dry Weight (g)">
   <select id="shape">
@@ -59,28 +55,40 @@
 
   <script async src="https://docs.opencv.org/4.9.0/opencv.js" onload="onOpenCvReady();"></script>
   <script>
-    let video = document.getElementById("video");
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
+    let imageInput = document.getElementById("imageInput");
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => video.srcObject = stream);
+    let imgLoaded = false;
 
-    function capture() {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.style.display = "block";
-    }
-
-    function retake() {
-      canvas.style.display = "none";
-      document.getElementById("result").innerHTML = "";
-    }
+    imageInput.addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        let img = new Image();
+        img.onload = function () {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.style.display = "block";
+          imgLoaded = true;
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
 
     function onOpenCvReady() {
-      console.log("OpenCV.js loaded.");
+      console.log("OpenCV.js is ready");
     }
 
     function estimate() {
+      if (!imgLoaded) {
+        alert("Please upload an image first.");
+        return;
+      }
+
       let weight = parseFloat(document.getElementById("weight").value);
       let shape = document.getElementById("shape").value;
       if (isNaN(weight)) {
@@ -94,7 +102,7 @@
       cv.GaussianBlur(gray, gray, new cv.Size(9, 9), 2, 2);
 
       let circles = new cv.Mat();
-      cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 20, 100, 30, 10, 50);
+      cv.HoughCircles(gray, circles, cv.HOUGH_GRADIENT, 1, 20, 100, 30, 10, 100);
 
       if (circles.cols < 1) {
         document.getElementById("result").innerHTML = "<b style='color:red'>Reference coin not detected. Try again.</b>";
@@ -102,35 +110,34 @@
         return;
       }
 
-      let coinRadiusPx = circles.data32F[2]; // radius of first detected circle
+      let coinRadiusPx = circles.data32F[2];
       let coinDiameterPx = coinRadiusPx * 2;
-      const realCoinDiameter = 26.0; // in mm
+      const realCoinDiameter = 26.0; // mm
 
       let pxPerMM = coinDiameterPx / realCoinDiameter;
 
-      // Detect gold object area (simplified: whole image minus coin)
+      // Estimate gold area (simplified as full canvas minus coin)
       let goldAreaPx = (src.rows * src.cols) - (Math.PI * coinRadiusPx * coinRadiusPx);
       let goldAreaMM = goldAreaPx / (pxPerMM * pxPerMM);
 
-      // Estimate volume based on shape
+      // Estimate volume from area (rough based on shape)
       let volume;
       switch (shape) {
         case "rod":
         case "bar":
-          volume = goldAreaMM * 1.5; break; // assume 1.5mm avg height
         case "coin":
           volume = goldAreaMM * 1.5; break;
         default:
           volume = goldAreaMM * 1.2; break;
       }
-      volume /= 1000; // convert mm³ to cm³
+      volume /= 1000; // mm³ to cm³
 
       let density = weight / volume;
       let purity = Math.min(1000, Math.round((density / 19.3) * 1000));
 
       document.getElementById("result").innerHTML = `
         <b>Detected Coin Diameter:</b> ${coinDiameterPx.toFixed(1)} px<br>
-        <b>Estimated px/mm:</b> ${pxPerMM.toFixed(2)}<br>
+        <b>px/mm:</b> ${pxPerMM.toFixed(2)}<br>
         <b>Estimated Volume:</b> ${volume.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
         <b>Purity:</b> ${purity} / 1000
