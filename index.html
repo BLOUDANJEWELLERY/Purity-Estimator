@@ -110,65 +110,53 @@
         return;
       }
 
-      // Detected coin radius in pixels
       let coinRadiusPx = circles.data32F[2];
       let coinDiameterPx = coinRadiusPx * 2;
-      const realCoinDiameter = 26.0; // mm (real-world size of the coin)
+      const realCoinDiameter = 26.0;
 
-      // Correcting scaling factor: this should be calculated correctly now
-      let pxPerMM = coinDiameterPx / realCoinDiameter;  // px per millimeter
+      let pxPerMM = coinDiameterPx / realCoinDiameter;
       console.log(`Detected coin diameter in pixels: ${coinDiameterPx} px`);
       console.log(`Scaling factor (px/mm): ${pxPerMM.toFixed(2)}`);
 
-      // Check if the scaling factor is valid. If it's too low or too high, reject it.
       if (pxPerMM < 0.1 || pxPerMM > 10) {
         alert("Scaling factor seems unrealistic. Please upload a better image.");
         return;
       }
 
-      // Convert pixel area to millimeters squared (gold area estimation):
       let goldAreaPx = (src.rows * src.cols) - (Math.PI * coinRadiusPx * coinRadiusPx); 
-      let goldAreaMM = goldAreaPx / (pxPerMM * pxPerMM); // Convert pixel area to millimeters squared
+      let goldAreaMM = goldAreaPx / (pxPerMM * pxPerMM);
 
-      // Corrected volume estimation:
       let volume = 0;
       switch (shape) {
         case "rod":
-          // Estimating volume for rod: We assume a cylindrical shape based on the area
-          let rodRadiusMM = Math.sqrt(goldAreaMM / Math.PI); // Approximate radius from area
-          let rodHeightMM = 50; // Assume typical height (can adjust if needed)
+          let rodRadiusMM = Math.sqrt(goldAreaMM / Math.PI);
+          let rodHeightMM = 50;
           volume = Math.PI * Math.pow(rodRadiusMM, 2) * rodHeightMM;
           break;
 
         case "bar":
-          // Estimating volume for bar: Assume simple rectangular prism shape
-          let barWidthMM = Math.sqrt(goldAreaMM); // Approximate width from area
-          let barHeightMM = 50; // Assume typical height (can adjust if needed)
-          let barThicknessMM = 5; // Assume thickness (can adjust if needed)
+          let barWidthMM = Math.sqrt(goldAreaMM);
+          let barHeightMM = 50;
+          let barThicknessMM = 5;
           volume = barWidthMM * barHeightMM * barThicknessMM;
           break;
 
         case "coin":
-          // Estimating volume for coin: Use formula for the volume of a cylinder
-          let coinRadiusMM = Math.sqrt(goldAreaMM / Math.PI); // Correct radius for coin
-          let coinThicknessMM = 1.5; // Known thickness for coin (adjustable)
+          let coinRadiusMM = Math.sqrt(goldAreaMM / Math.PI);
+          let coinThicknessMM = 1.5;
           volume = Math.PI * Math.pow(coinRadiusMM, 2) * coinThicknessMM;
           break;
 
         default:
-          // Irregular shapes are difficult, but we can assume some approximate volume
-          volume = goldAreaMM * 1.2; // Estimate for irregular shape
+          volume = goldAreaMM * 1.2;
           break;
       }
 
-      // Convert volume from mm³ to cm³
       volume /= 1000;
 
-      // Calculate density and purity
-      let density = weight / volume;  // g/cm³
-      let purity = Math.min(1000, Math.round((density / 19.3) * 1000));  // Based on gold density (19.3 g/cm³)
+      let density = weight / volume;
+      let purity = Math.min(1000, Math.round((density / 19.3) * 1000));
 
-      // Display the results
       document.getElementById("result").innerHTML = `
         <b>Detected Coin Diameter:</b> ${coinDiameterPx.toFixed(1)} px<br>
         <b>Scaling Factor (px/mm):</b> ${pxPerMM.toFixed(2)}<br>
@@ -177,7 +165,6 @@
         <b>Purity:</b> ${purity} / 1000
       `;
 
-      // Clean up memory
       src.delete(); gray.delete(); circles.delete();
     }
   </script>
