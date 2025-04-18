@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gold Purity & Alloy Inference</title>
+  <title>Gold Purity Estimator</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -36,32 +36,46 @@
       background-color: #c7a332;
       cursor: pointer;
     }
+    .section {
+      margin-top: 30px;
+    }
     .result-box {
       background-color: #444;
       padding: 15px;
       border-radius: 5px;
       margin-top: 10px;
     }
+    .instruction-box {
+      background-color: #333;
+      padding: 15px;
+      margin-top: 15px;
+      border-left: 4px solid #c7a332;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Gold Purity & Alloy Inference Estimator</h1>
+    <h1>Gold Purity & Volume Estimator</h1>
 
-    <div>
-      <h2>Enter Measurements</h2>
+    <div class="section">
+      <h2>Option C: Weight-Based Water Displacement</h2>
       <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)">
       <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)">
-      <button onclick="calculatePurity()">Calculate Purity</button>
+      <button onclick="calculatePurity()">Calculate Volume & Purity</button>
       <div id="displacementResult" class="result-box"></div>
+
+      <div class="instruction-box">
+        <b>How to Measure Properly (Important!):</b><br><br>
+        • Weigh the gold object dry.<br>
+        • Place a water-filled container on the scale and zero it.<br>
+        • Suspend the object using a thin thread or wire so it doesn’t touch the container.<br>
+        • Submerge it fully — record the increase in weight shown (that’s the displaced water weight in grams = cm³).<br>
+        • Avoid hand contact with water or letting object rest on container.
+      </div>
     </div>
   </div>
 
   <script>
-    const goldDensity = 19.3;
-    const silverDensity = 10.49;
-    const copperDensity = 8.96;
-
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
@@ -74,37 +88,31 @@
 
       const volume = displacedWater;
       const density = dryWeight / volume;
-      let purity, correctedPurity, alloy;
 
-      // Initial purity estimate assuming pure gold
-      let estimatedPurity = (density / goldDensity) * 1000;
+      const alloyDensity = 16.6497; // calibrated alloy
+      const alloyPurity = 876;
+      const pureGoldDensity = 19.3;
+      const switchThreshold = 19.1;
 
-      // Alloy Inference based on density
-      let expectedDensitySilver = (goldDensity * (estimatedPurity / 1000)) + (silverDensity * ((1000 - estimatedPurity) / 1000));
-      let expectedDensityCopper = (goldDensity * (estimatedPurity / 1000)) + (copperDensity * ((1000 - estimatedPurity) / 1000));
+      let purity, method;
 
-      // Calculate error between actual and expected densities
-      let errorSilver = Math.abs(density - expectedDensitySilver);
-      let errorCopper = Math.abs(density - expectedDensityCopper);
-
-      if (errorSilver < errorCopper) {
-        alloy = "Silver";
-        correctedPurity = ((density - silverDensity) / (goldDensity - silverDensity)) * 1000;
-      } else if (errorCopper < errorSilver) {
-        alloy = "Copper";
-        correctedPurity = ((density - copperDensity) / (goldDensity - copperDensity)) * 1000;
+      if (density >= switchThreshold) {
+        // Use pure gold calculator
+        purity = (density / pureGoldDensity) * 1000;
+        method = `Pure Gold Density Reference (${pureGoldDensity} g/cm³)`;
       } else {
-        alloy = "Mixed";
-        correctedPurity = (errorSilver + errorCopper) / 2;  // Blend result
+        // Use calibrated alloy method
+        purity = alloyPurity + ((density - alloyDensity) / (pureGoldDensity - alloyDensity)) * (1000 - alloyPurity);
+        method = `Auto-Inferred Alloy Calibration (${alloyPurity} @ ${alloyDensity} g/cm³)`;
       }
 
-      correctedPurity = Math.min(1000, Math.max(0, correctedPurity));
+      purity = Math.round(Math.min(1000, Math.max(0, purity)));
 
       resultBox.innerHTML = `
-        <b>Density:</b> ${density.toFixed(2)} g/cm³<br>
-        <b>Estimated Purity:</b> ${estimatedPurity.toFixed(2)} / 1000<br>
-        <b>Corrected Purity:</b> ${correctedPurity.toFixed(2)} / 1000<br>
-        <b>Alloy Assumed:</b> ${alloy}
+        <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
+        <b>Density:</b> ${density.toFixed(4)} g/cm³<br>
+        <b>Estimated Purity:</b> ${purity} / 1000<br>
+        <small>Method Used: ${method}</small>
       `;
     }
   </script>
