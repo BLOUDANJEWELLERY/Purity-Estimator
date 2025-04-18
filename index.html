@@ -81,49 +81,56 @@
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
       const resultBox = document.getElementById("displacementResult");
 
-      // Validate inputs
-      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater <= 0 || dryWeight <= 0) {
-        alert("Please enter valid positive dry weight and displaced water weight.");
+      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
+        alert("Please enter valid dry weight and displaced water weight.");
         return;
       }
 
-      // Calculate Density
-      const density = dryWeight / displacedWater;
+      const volume = displacedWater;
+      const density = dryWeight / volume;
 
-      const alloyDensitySilver = 10.49; // Silver density (g/cm³)
-      const alloyDensityCopper = 8.96; // Copper density (g/cm³)
-      const pureGoldDensity = 19.3; // Pure gold density (g/cm³)
+      const alloyDensity = 16.6497; // from calibration (876 purity)
+      const alloyPurity = 876;
+      const pureGoldDensity = 19.3;
+      const silverDensity = 10.49;
+      const copperDensity = 8.96;
 
-      // Logic for Auto-Alloy Inference
-      let inferredPurity;
-      let method;
-      let estimatedDensity;
+      let purity, method;
+      let silverPurity, copperPurity;
+      let blendRatioSilver, blendRatioCopper;
 
-      // Check against Silver alloy
-      if (density >= alloyDensitySilver) {
-        inferredPurity = (density - alloyDensitySilver) / (pureGoldDensity - alloyDensitySilver) * 1000;
-        estimatedDensity = alloyDensitySilver;
-        method = `Inferred Alloy: Silver (Density: ${alloyDensitySilver} g/cm³)`;
-      }
-      // Check against Copper alloy
-      else if (density >= alloyDensityCopper) {
-        inferredPurity = (density - alloyDensityCopper) / (pureGoldDensity - alloyDensityCopper) * 1000;
-        estimatedDensity = alloyDensityCopper;
-        method = `Inferred Alloy: Copper (Density: ${alloyDensityCopper} g/cm³)`;
+      // Assuming densities for Silver and Copper
+      silverPurity = (density / silverDensity) * 1000;
+      copperPurity = (density / copperDensity) * 1000;
+
+      // Now calculate the blend ratio
+      const totalPurity = silverPurity + copperPurity;
+      if (totalPurity > 0) {
+        blendRatioSilver = (silverPurity / totalPurity) * 100;
+        blendRatioCopper = (copperPurity / totalPurity) * 100;
       } else {
-        inferredPurity = (density / pureGoldDensity) * 1000;
-        estimatedDensity = pureGoldDensity;
-        method = `Inferred Alloy: Pure Gold (Density: ${pureGoldDensity} g/cm³)`;
+        blendRatioSilver = 0;
+        blendRatioCopper = 0;
       }
 
-      // Limit purity to valid range
-      inferredPurity = Math.max(0, Math.min(1000, inferredPurity));
+      // Calculate Purity based on density
+      if (density <= 18.0) {
+        purity = (density / alloyDensity) * alloyPurity;
+        method = `Calibrated (Alloy Reference: ${alloyPurity} / 1000 at ${alloyDensity} g/cm³)`;
+      } else {
+        purity = (density / pureGoldDensity) * 1000;
+        method = `Standard Pure Gold Reference (19.3 g/cm³)`;
+      }
 
-      // Display Results
+      purity = Math.round(Math.min(1000, Math.max(0, purity)));
+
       resultBox.innerHTML = `
-        <b>Volume:</b> ${displacedWater.toFixed(2)} cm³<br>
+        <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(4)} g/cm³<br>
-        <b>Estimated Purity:</b> ${Math.round(inferredPurity)} / 1000<br>
+        <b>Estimated Purity:</b> ${purity} / 1000<br>
+        <b>Purity (Assuming Silver):</b> ${silverPurity.toFixed(2)}<br>
+        <b>Purity (Assuming Copper):</b> ${copperPurity.toFixed(2)}<br>
+        <b>Blend Ratio:</b> ${blendRatioSilver.toFixed(2)}% Silver / ${blendRatioCopper.toFixed(2)}% Copper<br>
         <small>Method Used: ${method}</small>
       `;
     }
