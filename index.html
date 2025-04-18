@@ -51,20 +51,6 @@
       margin-top: 15px;
       border-left: 4px solid #c7a332;
     }
-    .progress-bar {
-      background-color: #222;
-      border-radius: 5px;
-      overflow: hidden;
-      margin-top: 10px;
-    }
-    .progress {
-      height: 20px;
-      text-align: center;
-      color: #000;
-      font-weight: bold;
-      line-height: 20px;
-      transition: width 0.3s ease, background-color 0.3s ease;
-    }
   </style>
 </head>
 <body>
@@ -77,7 +63,6 @@
       <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)">
       <button onclick="calculatePurity()">Calculate Volume & Purity</button>
       <div id="displacementResult" class="result-box"></div>
-      <div class="progress-bar"><div id="confidenceBar" class="progress" style="width: 0%">0%</div></div>
 
       <div class="instruction-box">
         <b>How to Measure Properly (Important!):</b><br><br>
@@ -95,51 +80,37 @@
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
       const resultBox = document.getElementById("displacementResult");
-      const confidenceBar = document.getElementById("confidenceBar");
 
       if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
         alert("Please enter valid dry weight and displaced water weight.");
         return;
       }
 
-      // Your calibrated values
-      const referenceDensity = 16.6497; // Calculated from your 52.29 / 3.14
-      const referencePurity = 876;
-      const calibratedPureDensity = referenceDensity / (referencePurity / 1000); // 19.0065 g/cm³
-
       const volume = displacedWater;
       const density = dryWeight / volume;
-      const estimatedPurity = Math.min(1000, Math.max(0, Math.round((density / calibratedPureDensity) * 1000)));
 
-      // Confidence logic
-      let deviation = Math.abs(density - referenceDensity);
-      let weightFactor = Math.min(1, dryWeight / 10);
-      let deviationFactor = Math.max(0, 1 - deviation / 5);
+      const alloyDensity = 16.6497; // from calibration (876 purity)
+      const alloyPurity = 876;
+      const pureGoldDensity = 19.3;
 
-      let confidence = Math.round(deviationFactor * weightFactor * 100);
+      let purity, method;
 
-      // Color transition
-      let color = "#ff0000";
-      if (confidence > 80) {
-        let green = Math.min(255, 200 + (confidence - 80) * 2.5);
-        color = `rgb(0,${green},0)`;
-      } else if (confidence > 50) {
-        let yellow = Math.min(255, 200 + (confidence - 50) * 2);
-        color = `rgb(${255 - (confidence - 50) * 5},${yellow},0)`;
+      if (density <= 18.0) {
+        purity = (density / alloyDensity) * alloyPurity;
+        method = `Calibrated (Alloy Reference: ${alloyPurity} / 1000 at ${alloyDensity} g/cm³)`;
       } else {
-        color = `rgb(255,${Math.round(confidence * 2)},0)`;
+        purity = (density / pureGoldDensity) * 1000;
+        method = `Standard Pure Gold Reference (19.3 g/cm³)`;
       }
+
+      purity = Math.round(Math.min(1000, Math.max(0, purity)));
 
       resultBox.innerHTML = `
         <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(4)} g/cm³<br>
-        <b>Estimated Purity:</b> ${estimatedPurity} / 1000<br>
-        <small>(Calibrated: 52.29g & 3.14g = 876 purity → 19.0065 g/cm³)</small>
+        <b>Estimated Purity:</b> ${purity} / 1000<br>
+        <small>Method Used: ${method}</small>
       `;
-
-      confidenceBar.style.width = confidence + "%";
-      confidenceBar.style.backgroundColor = color;
-      confidenceBar.textContent = confidence + "%";
     }
   </script>
 </body>
