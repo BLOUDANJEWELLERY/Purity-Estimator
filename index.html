@@ -51,19 +51,6 @@
       margin-top: 15px;
       border-left: 4px solid #c7a332;
     }
-    #details {
-      display: none;
-      background-color: #222;
-      padding: 10px;
-      margin-top: 10px;
-      border-left: 4px solid #888;
-      font-size: 14px;
-    }
-    .toggle-btn {
-      background-color: #555;
-      margin-top: 10px;
-      text-align: center;
-    }
   </style>
 </head>
 <body>
@@ -76,8 +63,6 @@
       <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)">
       <button onclick="calculatePurity()">Calculate Volume & Purity</button>
       <div id="displacementResult" class="result-box"></div>
-      <button id="toggleDetails" class="toggle-btn" onclick="toggleDetails()">Show Details</button>
-      <div id="details"></div>
 
       <div class="instruction-box">
         <b>How to Measure Properly (Important!):</b><br><br>
@@ -95,88 +80,52 @@
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
       const resultBox = document.getElementById("displacementResult");
-      const detailsBox = document.getElementById("details");
 
-      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
-        alert("Please enter valid dry weight and displaced water weight.");
+      // Validate inputs
+      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater <= 0 || dryWeight <= 0) {
+        alert("Please enter valid positive dry weight and displaced water weight.");
         return;
       }
 
-      const volume = displacedWater;
-      const density = dryWeight / volume;
+      // Calculate Density
+      const density = dryWeight / displacedWater;
 
-      const goldDensity = 19.3;
-      const silverDensity = 10.49;
-      const copperDensity = 8.96;
+      const alloyDensitySilver = 10.49; // Silver density (g/cm³)
+      const alloyDensityCopper = 8.96; // Copper density (g/cm³)
+      const pureGoldDensity = 19.3; // Pure gold density (g/cm³)
 
-      const puritySilver = (density - silverDensity) / (goldDensity - silverDensity) * 1000;
-      const purityCopper = (density - copperDensity) / (goldDensity - copperDensity) * 1000;
+      // Logic for Auto-Alloy Inference
+      let inferredPurity;
+      let method;
+      let estimatedDensity;
 
-      const estimatedDensitySilver = (puritySilver / 1000) * goldDensity + (1 - puritySilver / 1000) * silverDensity;
-      const estimatedDensityCopper = (purityCopper / 1000) * goldDensity + (1 - purityCopper / 1000) * copperDensity;
-
-      const errorSilver = Math.abs(density - estimatedDensitySilver);
-      const errorCopper = Math.abs(density - estimatedDensityCopper);
-
-      let finalPurity, alloyUsed, blendRatio;
-
-      if (errorSilver < errorCopper - 0.05) {
-        finalPurity = puritySilver;
-        alloyUsed = "Silver";
-        blendRatio = 1;
-      } else if (errorCopper < errorSilver - 0.05) {
-        finalPurity = purityCopper;
-        alloyUsed = "Copper";
-        blendRatio = 0;
+      // Check against Silver alloy
+      if (density >= alloyDensitySilver) {
+        inferredPurity = (density - alloyDensitySilver) / (pureGoldDensity - alloyDensitySilver) * 1000;
+        estimatedDensity = alloyDensitySilver;
+        method = `Inferred Alloy: Silver (Density: ${alloyDensitySilver} g/cm³)`;
+      }
+      // Check against Copper alloy
+      else if (density >= alloyDensityCopper) {
+        inferredPurity = (density - alloyDensityCopper) / (pureGoldDensity - alloyDensityCopper) * 1000;
+        estimatedDensity = alloyDensityCopper;
+        method = `Inferred Alloy: Copper (Density: ${alloyDensityCopper} g/cm³)`;
       } else {
-        const totalError = errorCopper + errorSilver;
-        const silverWeight = errorCopper / totalError;
-        const copperWeight = errorSilver / totalError;
-        finalPurity = puritySilver * silverWeight + purityCopper * copperWeight;
-        alloyUsed = "Mixed (Silver + Copper)";
-        blendRatio = `${Math.round(silverWeight * 100)}% Silver / ${Math.round(copperWeight * 100)}% Copper`;
+        inferredPurity = (density / pureGoldDensity) * 1000;
+        estimatedDensity = pureGoldDensity;
+        method = `Inferred Alloy: Pure Gold (Density: ${pureGoldDensity} g/cm³)`;
       }
 
-      finalPurity = Math.round(Math.min(1000, Math.max(0, finalPurity)));
+      // Limit purity to valid range
+      inferredPurity = Math.max(0, Math.min(1000, inferredPurity));
 
+      // Display Results
       resultBox.innerHTML = `
-        <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
+        <b>Volume:</b> ${displacedWater.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(4)} g/cm³<br>
-        <b>Estimated Purity:</b> ${finalPurity} / 1000<br>
-        <small>Auto-Alloy Inference: Assumed Alloy – <b>${alloyUsed}</b></small>
+        <b>Estimated Purity:</b> ${Math.round(inferredPurity)} / 1000<br>
+        <small>Method Used: ${method}</small>
       `;
-
-      detailsBox.innerHTML = `
-        <b>Alloy Inference Breakdown:</b><br>
-        • <b>Gold Density:</b> 19.3 g/cm³<br>
-        • <b>Silver Density:</b> 10.49 g/cm³<br>
-        • <b>Copper Density:</b> 8.96 g/cm³<br><br>
-
-        • <b>Purity (Assuming Silver):</b> ${puritySilver.toFixed(2)}<br>
-        • <b>Estimated Density (Silver):</b> ${estimatedDensitySilver.toFixed(4)}<br>
-        • <b>Error (Silver):</b> ${errorSilver.toFixed(4)}<br><br>
-
-        • <b>Purity (Assuming Copper):</b> ${purityCopper.toFixed(2)}<br>
-        • <b>Estimated Density (Copper):</b> ${estimatedDensityCopper.toFixed(4)}<br>
-        • <b>Error (Copper):</b> ${errorCopper.toFixed(4)}<br><br>
-
-        • <b>Selected Alloy:</b> ${alloyUsed}<br>
-        ${blendRatio ? `• <b>Blend Ratio:</b> ${blendRatio}<br>` : ''}
-      `;
-      document.getElementById("details").style.display = "none";
-      document.getElementById("toggleDetails").textContent = "Show Details";
-    }
-
-    function toggleDetails() {
-      const details = document.getElementById("details");
-      const button = document.getElementById("toggleDetails");
-      if (details.style.display === "none") {
-        details.style.display = "block";
-        button.textContent = "Hide Details";
-      } else {
-        details.style.display = "none";
-        button.textContent = "Show Details";
-      }
     }
   </script>
 </body>
