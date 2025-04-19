@@ -5,112 +5,101 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gold Purity Estimator</title>
   <style>
+    /* Basic resets & structure */
     body {
-      background-color: #1a1a1a;
-      color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
       margin: 0;
-      padding: 40px 10px;
+      padding: 30px 10px;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
-      overflow-x: hidden;
-      transition: background-color 0.4s ease;
     }
+
     .container {
       width: 100%;
       max-width: 600px;
-      background-color: #2c2c2c;
-      padding: 25px;
-      border-radius: 14px;
-      box-sizing: border-box;
-      text-align: center;
+      background-color: #1f1f1f;
+      padding: 30px;
+      border-radius: 15px;
       box-shadow: 0 0 20px rgba(199, 163, 50, 0.1);
+      position: relative;
     }
+
     h1, h2 {
       color: #c7a332;
-      font-size: 1.6em;
-      margin-bottom: 20px;
+      text-align: center;
+      margin-bottom: 25px;
       font-weight: 600;
     }
+
     .input-container {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
       position: relative;
-      width: 100%;
-      margin-bottom: 25px;
     }
-    input, button {
-      width: 100%;
-      padding: 14px;
-      margin: 10px 0;
-      border-radius: 6px;
+
+    .input-container:focus-within {
+      border-left: 3px solid #c7a332;
+      padding-left: 7px;
+      background-color: #2a2a2a;
+      transition: all 0.3s ease;
+    }
+
+    input {
+      padding: 12px;
+      background-color: #333;
       border: none;
-      background-color: #3c3c3c;
-      color: white;
-      font-size: 1em;
-      box-sizing: border-box;
-      outline: none;
-      transition: box-shadow 0.3s ease, border-bottom 0.3s ease;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 1.1em;
     }
+
     input:focus {
-      border-bottom: 2px solid #c7a332;
-      box-shadow: 0 0 6px rgba(199, 163, 50, 0.6);
+      outline: none;
+      box-shadow: 0 0 5px #c7a332;
     }
+
     button {
       background-color: #c7a332;
+      border: none;
+      border-radius: 6px;
+      padding: 14px;
+      font-size: 1.1em;
       color: white;
-      font-weight: bold;
-      transition: background-color 0.3s, box-shadow 0.3s;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.1s;
     }
+
     button:hover {
       background-color: #b28d2f;
-      box-shadow: 0 0 10px rgba(199, 163, 50, 0.6);
     }
+
     button:active {
-      background-color: #9f7d2f;
+      background-color: #a07c2f;
       transform: scale(0.98);
     }
-    .section {
-      margin-top: 30px;
-    }
-    .result-box {
-      background-color: #444;
-      padding: 15px;
-      border-radius: 6px;
-      margin-top: 20px;
-      font-size: 1.2em;
-      position: relative;
-    }
-    .instruction-box {
-      background-color: #333;
-      padding: 16px;
-      margin-top: 20px;
-      border-left: 4px solid #c7a332;
-      text-align: left;
-      line-height: 1.5em;
-    }
+
     .help-btn-container {
       position: absolute;
       right: 10px;
       top: 50%;
       transform: translateY(-50%);
-      cursor: pointer;
     }
+
     .help-btn {
       background-color: #c7a332;
-      color: white;
-      font-weight: bold;
       border-radius: 50%;
       width: 24px;
       height: 24px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
+      color: white;
       border: none;
+      font-weight: bold;
+      cursor: pointer;
     }
-    .help-btn:hover {
-      background-color: #b28d2f;
-    }
+
     .help-box {
       display: none;
       background-color: #333;
@@ -121,175 +110,186 @@
       right: 0;
       z-index: 10;
     }
+
+    .result-box {
+      background-color: #222;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #c7a332;
+      text-align: center;
+    }
+
+    .digit-container span {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideUp 0.4s ease forwards;
+    }
+
+    @keyframes slideUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .liquid-bar {
+      height: 20px;
+      background: linear-gradient(270deg, #c7a332, #ffd700, #c7a332);
+      background-size: 600% 600%;
+      animation: liquidFlow 6s ease infinite;
+      border-radius: 10px;
+      margin-top: 15px;
+    }
+
+    @keyframes liquidFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .instruction-box {
+      background-color: #2c2c2c;
+      padding: 15px;
+      border-left: 4px solid #c7a332;
+      margin-top: 25px;
+    }
+
     #fullscreenBtn {
       background-color: #c7a332;
       color: white;
+      font-size: 1.1em;
       padding: 12px;
       border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 1.1em;
-      margin-top: 15px;
-    }
-    #fullscreenBtn:hover {
-      background-color: #b28d2f;
-    }
-    #fullscreenBtn:active {
-      background-color: #9f7d2f;
-    }
-    .purity-bar {
-      margin-top: 12px;
-      width: 100%;
-      height: 12px;
-      background-color: #2b2b2b;
       border-radius: 6px;
-      overflow: hidden;
+      margin-top: 20px;
+      cursor: pointer;
     }
-    .purity-bar-fill {
+
+    .gold-dust {
+      pointer-events: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
       height: 100%;
-      background: linear-gradient(to right, #c7a332, #ffd700);
-      width: 0%;
-      transition: width 1.2s ease-in-out;
+      background: radial-gradient(#c7a33222 1px, transparent 1px);
+      background-size: 4px 4px;
+      z-index: 0;
+      opacity: 0.05;
+      animation: twinkle 3s infinite alternate;
     }
-    @media (max-width: 600px) {
-      h1 {
-        font-size: 1.3em;
-      }
-      .container {
-        padding: 18px;
-      }
+
+    @keyframes twinkle {
+      from { opacity: 0.03; }
+      to { opacity: 0.07; }
     }
   </style>
 </head>
 <body>
+  <div class="gold-dust" id="dustLayer"></div>
+
   <div class="container">
     <h1>Gold Purity Estimator</h1>
+    <h2>Weight-Based Water Displacement</h2>
 
-    <div class="section">
-      <h2>Weight-Based Water Displacement</h2>
-
-      <div class="input-container">
-        <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" oninput="hideHelp('dryWeightHelp', 'dryWeight')" onkeydown="moveFocus(event, 'displacedWater')" />
-        <div class="help-btn-container" onclick="toggleHelp('dryWeightHelp')">
-          <button class="help-btn">?</button>
-        </div>
-        <div id="dryWeightHelp" class="help-box">
-          <b>How to Measure Dry Weight:</b><br>
-          Use a precise scale to measure the weight of your gold object. Ensure it is clean and dry.
-        </div>
+    <div class="input-container">
+      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" oninput="hideHelp('dryWeightHelp')" onkeydown="moveFocus(event, 'displacedWater')" />
+      <div class="help-btn-container" onclick="toggleHelp('dryWeightHelp')">
+        <button class="help-btn">?</button>
       </div>
-
-      <div class="input-container">
-        <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp', 'displacedWater')" onkeydown="moveFocus(event, 'calculateButton')" />
-        <div class="help-btn-container" onclick="toggleHelp('displacedWaterHelp')">
-          <button class="help-btn">?</button>
-        </div>
-        <div id="displacedWaterHelp" class="help-box">
-          <b>How to Measure Water Displacement:</b><br>
-          Zero the scale with container of water on it. Suspend your gold object in water and note the weight on the scale. This is the displaced water weight.
-        </div>
-      </div>
-
-      <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
-      <button onclick="resetForm()">Reset</button>
-
-      <div id="displacementResult" class="result-box"></div>
-      <div class="purity-bar"><div id="purityFill" class="purity-bar-fill"></div></div>
-
-      <div class="instruction-box">
-        <b>How to Measure Properly (Important!):</b><br><br>
-        • Weigh the gold object dry.<br>
-        • Zero the scale with the container.<br>
-        • Suspend the object fully in water without touching the sides.<br>
-        • Record the increase in weight (this is the displaced water weight in grams).<br>
-        • Avoid touching the water or letting the object rest on the container.
-      </div>
-
-      <button id="fullscreenBtn" onclick="enterFullScreen()">Enter Full Screen</button>
+      <div id="dryWeightHelp" class="help-box">Use a precise scale. Ensure object is clean and dry.</div>
     </div>
+
+    <div class="input-container">
+      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp')" onkeydown="moveFocus(event, 'calculateButton')" />
+      <div class="help-btn-container" onclick="toggleHelp('displacedWaterHelp')">
+        <button class="help-btn">?</button>
+      </div>
+      <div id="displacedWaterHelp" class="help-box">Zero the scale with container. Submerge object and record displaced weight.</div>
+    </div>
+
+    <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
+    <button onclick="resetForm()">Reset</button>
+
+    <div id="displacementResult" class="result-box"></div>
+    <div class="liquid-bar"></div>
+
+    <div class="instruction-box">
+      <b>Measuring Tips:</b><br><br>
+      • Weigh the object dry.<br>
+      • Zero the container.<br>
+      • Fully submerge object in water.<br>
+      • Record displaced water weight (in grams).
+    </div>
+
+    <button id="fullscreenBtn" onclick="enterFullScreen()">Enter Full Screen</button>
   </div>
 
   <script>
-    function hideHelp(helpId, inputId) {
-      const helpContent = document.getElementById(helpId);
-      const inputField = document.getElementById(inputId);
-      if (inputField.value.length > 0) {
-        helpContent.style.display = 'none';
+    function hideHelp(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    function toggleHelp(id) {
+      const box = document.getElementById(id);
+      box.style.display = box.style.display === "block" ? "none" : "block";
+    }
+
+    function moveFocus(e, nextId) {
+      if (e.key === "Enter") {
+        const el = document.getElementById(nextId);
+        if (el) el.focus();
       }
     }
 
-    function toggleHelp(helpId) {
-      const helpContent = document.getElementById(helpId);
-      helpContent.style.display = helpContent.style.display === "none" ? "block" : "none";
-    }
-
-    function moveFocus(event, nextElementId) {
-      if (event.key === "Enter") {
-        const nextElement = document.getElementById(nextElementId);
-        if (nextElement) {
-          nextElement.focus();
-        } else {
-          calculatePurity();
-        }
-      }
+    function vibrateFeedback() {
+      if (navigator.vibrate) navigator.vibrate(10);
     }
 
     function calculatePurity() {
-      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
-      const displacedWater = parseFloat(document.getElementById("displacedWater").value);
-      const resultBox = document.getElementById("displacementResult");
-      const purityFill = document.getElementById("purityFill");
+      vibrateFeedback();
 
-      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
-        alert("Please enter valid dry weight and displaced water weight.");
+      const dry = parseFloat(document.getElementById("dryWeight").value);
+      const water = parseFloat(document.getElementById("displacedWater").value);
+      const box = document.getElementById("displacementResult");
+
+      if (isNaN(dry) || isNaN(water) || water === 0) {
+        alert("Please enter valid weights.");
         return;
       }
 
-      const volume = displacedWater;
-      const density = dryWeight / volume;
-
+      const density = dry / water;
+      const pureDensity = 19.1882;
       const alloyDensity = 16.6497;
       const alloyPurity = 876;
-      const pureGoldDensity = 19.1882;
 
-      let purity, method;
-      if (density >= 18.35) {
-        purity = (density / pureGoldDensity) * 1000;
-        method = `Pure Gold Reference`;
-      } else {
-        purity = (density / alloyDensity) * alloyPurity;
-        method = `Calibrated Alloy Reference`;
-      }
+      let purity = density >= 18.35
+        ? (density / pureDensity) * 1000
+        : (density / alloyDensity) * alloyPurity;
 
       purity = Math.min(1000, Math.max(0, purity));
-      const formattedPurity = purity.toFixed(1).padStart(5, '0');
+      const digits = purity.toFixed(1).padStart(5, '0').split('');
 
-      resultBox.innerHTML = `<b>Purity:</b> ${formattedPurity} / 1000<br><small>Method Used: ${method}</small>`;
-      purityFill.style.width = (purity / 1000 * 100).toFixed(1) + '%';
+      box.innerHTML = `<div class="digit-container">` +
+        digits.map((d, i) => `<span style="animation-delay: ${i * 0.05}s">${d}</span>`).join('') +
+        ` / 1000</div>`;
     }
 
     function resetForm() {
       document.getElementById("dryWeight").value = "";
       document.getElementById("displacedWater").value = "";
       document.getElementById("displacementResult").innerHTML = "";
-      document.getElementById("purityFill").style.width = "0%";
-      document.getElementById("dryWeight").focus();
     }
 
     function enterFullScreen() {
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
-      }
+      const e = document.documentElement;
+      if (e.requestFullscreen) e.requestFullscreen();
+      else if (e.webkitRequestFullscreen) e.webkitRequestFullscreen();
     }
-
-    document.getElementById("fullscreenBtn").addEventListener("click", function() {
-      enterFullScreen();
-    });
   </script>
 </body>
 </html>
