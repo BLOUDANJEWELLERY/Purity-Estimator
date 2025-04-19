@@ -259,15 +259,10 @@
       }
     }
 
+    // Add a listener for the fullscreen button click on iOS
     document.getElementById("fullscreenBtn").addEventListener("click", function() {
       enterFullScreen();
     });
-
-    // Check if the user is on an iOS device to handle potential quirks
-    if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
-      // Optionally, you can display a message for iOS users
-      document.getElementById("fullscreenBtn").innerHTML = "Tap to Enter Full Screen (iOS)";
-    }
   </script>
 </body>
 </html>
