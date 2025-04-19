@@ -8,47 +8,66 @@
     body {
       background-color: #1a1a1a;
       color: #fff;
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 40px 10px;
       display: flex;
       justify-content: center;
       align-items: flex-start;
       overflow-x: hidden;
+      transition: background-color 0.4s ease;
     }
     .container {
       width: 100%;
       max-width: 600px;
       background-color: #2c2c2c;
-      padding: 20px;
-      border-radius: 10px;
+      padding: 25px;
+      border-radius: 14px;
       box-sizing: border-box;
       text-align: center;
+      box-shadow: 0 0 20px rgba(199, 163, 50, 0.1);
     }
     h1, h2 {
       color: #c7a332;
-      font-size: 1.5em;
+      font-size: 1.6em;
       margin-bottom: 20px;
+      font-weight: 600;
     }
     .input-container {
       position: relative;
       width: 100%;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
     }
     input, button {
       width: 100%;
-      padding: 12px;
+      padding: 14px;
       margin: 10px 0;
-      border-radius: 5px;
+      border-radius: 6px;
       border: none;
       background-color: #3c3c3c;
       color: white;
       font-size: 1em;
       box-sizing: border-box;
+      outline: none;
+      transition: box-shadow 0.3s ease, border-bottom 0.3s ease;
+    }
+    input:focus {
+      border-bottom: 2px solid #c7a332;
+      box-shadow: 0 0 6px rgba(199, 163, 50, 0.6);
     }
     button {
       background-color: #c7a332;
-      cursor: pointer;
+      color: white;
+      font-weight: bold;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+    button:hover {
+      background-color: #b28d2f;
+      box-shadow: 0 0 10px rgba(199, 163, 50, 0.6);
+    }
+    button:active {
+      background-color: #9f7d2f;
+      transform: scale(0.98);
     }
     .section {
       margin-top: 30px;
@@ -56,14 +75,18 @@
     .result-box {
       background-color: #444;
       padding: 15px;
-      border-radius: 5px;
-      margin-top: 10px;
+      border-radius: 6px;
+      margin-top: 20px;
+      font-size: 1.2em;
+      position: relative;
     }
     .instruction-box {
       background-color: #333;
-      padding: 15px;
-      margin-top: 15px;
+      padding: 16px;
+      margin-top: 20px;
       border-left: 4px solid #c7a332;
+      text-align: left;
+      line-height: 1.5em;
     }
     .help-btn-container {
       position: absolute;
@@ -98,18 +121,6 @@
       right: 0;
       z-index: 10;
     }
-    @media (max-width: 600px) {
-      h1 {
-        font-size: 1.2em;
-      }
-      input, button {
-        font-size: 1.1em;
-        padding: 12px;
-      }
-      .container {
-        padding: 15px;
-      }
-    }
     #fullscreenBtn {
       background-color: #c7a332;
       color: white;
@@ -119,15 +130,34 @@
       cursor: pointer;
       font-size: 1.1em;
       margin-top: 15px;
-      transition: background-color 0.3s;
     }
-
     #fullscreenBtn:hover {
       background-color: #b28d2f;
     }
-
     #fullscreenBtn:active {
       background-color: #9f7d2f;
+    }
+    .purity-bar {
+      margin-top: 12px;
+      width: 100%;
+      height: 12px;
+      background-color: #2b2b2b;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .purity-bar-fill {
+      height: 100%;
+      background: linear-gradient(to right, #c7a332, #ffd700);
+      width: 0%;
+      transition: width 1.2s ease-in-out;
+    }
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.3em;
+      }
+      .container {
+        padding: 18px;
+      }
     }
   </style>
 </head>
@@ -164,6 +194,7 @@
       <button onclick="resetForm()">Reset</button>
 
       <div id="displacementResult" class="result-box"></div>
+      <div class="purity-bar"><div id="purityFill" class="purity-bar-fill"></div></div>
 
       <div class="instruction-box">
         <b>How to Measure Properly (Important!):</b><br><br>
@@ -203,26 +234,25 @@
       }
     }
 
-    // Function to calculate purity based on user inputs
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
       const resultBox = document.getElementById("displacementResult");
+      const purityFill = document.getElementById("purityFill");
 
       if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
         alert("Please enter valid dry weight and displaced water weight.");
         return;
       }
 
-      const volume = displacedWater;  // Volume is just displaced water weight
+      const volume = displacedWater;
       const density = dryWeight / volume;
 
-      const alloyDensity = 16.6497; // Calibrated (approx. 876 purity)
+      const alloyDensity = 16.6497;
       const alloyPurity = 876;
       const pureGoldDensity = 19.1882;
 
       let purity, method;
-
       if (density >= 18.35) {
         purity = (density / pureGoldDensity) * 1000;
         method = `Pure Gold Reference`;
@@ -234,17 +264,15 @@
       purity = Math.min(1000, Math.max(0, purity));
       const formattedPurity = purity.toFixed(1).padStart(5, '0');
 
-      // Only display the purity result, hide volume and density
-      resultBox.innerHTML = `
-        <b>Purity:</b> ${formattedPurity} / 1000<br>
-        <small>Method Used: ${method}</small>
-      `;
+      resultBox.innerHTML = `<b>Purity:</b> ${formattedPurity} / 1000<br><small>Method Used: ${method}</small>`;
+      purityFill.style.width = (purity / 1000 * 100).toFixed(1) + '%';
     }
 
     function resetForm() {
       document.getElementById("dryWeight").value = "";
       document.getElementById("displacedWater").value = "";
       document.getElementById("displacementResult").innerHTML = "";
+      document.getElementById("purityFill").style.width = "0%";
       document.getElementById("dryWeight").focus();
     }
 
@@ -252,14 +280,13 @@
       const elem = document.documentElement;
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) { // For Safari (iOS)
+      } else if (elem.webkitRequestFullscreen) {
         elem.webkitRequestFullscreen();
       } else if (elem.msRequestFullscreen) {
         elem.msRequestFullscreen();
       }
     }
 
-    // Add a listener for the fullscreen button click on iOS
     document.getElementById("fullscreenBtn").addEventListener("click", function() {
       enterFullScreen();
     });
