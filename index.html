@@ -26,6 +26,10 @@
       color: #c7a332;
       font-size: 1.5em;
     }
+    .input-container {
+      position: relative;
+      width: 100%;
+    }
     input, button {
       width: calc(100% - 20px);
       padding: 10px;
@@ -57,8 +61,11 @@
       border-left: 4px solid #c7a332;
     }
     .help-btn-container {
-      text-align: right;
-      margin-top: -20px;
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
     }
     .help-btn {
       background-color: #c7a332;
@@ -70,16 +77,21 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       font-size: 14px;
       border: none;
-      margin-left: 10px;
     }
     .help-btn:hover {
       background-color: #b28d2f;
     }
-    .help-btn-container {
-      margin-top: -10px;
+    .help-box {
+      display: none;
+      background-color: #333;
+      padding: 10px;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 10;
     }
 
     /* Mobile optimization */
@@ -116,28 +128,28 @@
     <div class="section">
       <h2>Option C: Weight-Based Water Displacement</h2>
 
-      <!-- Dry weight input -->
-      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" onkeydown="moveFocus(event, 'displacedWater')" />
-
-      <!-- Help button for dry weight -->
-      <div class="help-btn-container">
-        <button class="help-btn" onclick="showHelp('dryWeightHelp')">?</button>
+      <!-- Dry weight input with help button inside -->
+      <div class="input-container">
+        <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" oninput="hideHelp('dryWeightHelp', 'dryWeight')" onkeydown="moveFocus(event, 'displacedWater')" />
+        <div class="help-btn-container" onclick="toggleHelp('dryWeightHelp')">
+          <button class="help-btn">?</button>
+        </div>
+        <div id="dryWeightHelp" class="help-box">
+          <b>How to Measure Dry Weight:</b><br>
+          Use a precise scale to measure the weight of your gold object. Ensure it is clean and dry.
+        </div>
       </div>
-      <div id="dryWeightHelp" class="instruction-box" style="display:none;">
-        <b>How to Measure Dry Weight:</b><br>
-        Use a precise scale to measure the weight of your gold object. Ensure it is clean and dry.
-      </div>
 
-      <!-- Displaced water input -->
-      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" onkeydown="moveFocus(event, 'calculateButton')" />
-
-      <!-- Help button for displaced water -->
-      <div class="help-btn-container">
-        <button class="help-btn" onclick="showHelp('displacedWaterHelp')">?</button>
-      </div>
-      <div id="displacedWaterHelp" class="instruction-box" style="display:none;">
-        <b>How to Measure Water Displacement:</b><br>
-        Suspend your gold object in water and note the increase in weight on the scale. This is the displaced water weight.
+      <!-- Displaced water input with help button inside -->
+      <div class="input-container">
+        <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp', 'displacedWater')" onkeydown="moveFocus(event, 'calculateButton')" />
+        <div class="help-btn-container" onclick="toggleHelp('displacedWaterHelp')">
+          <button class="help-btn">?</button>
+        </div>
+        <div id="displacedWaterHelp" class="help-box">
+          <b>How to Measure Water Displacement:</b><br>
+          Suspend your gold object in water and note the increase in weight on the scale. This is the displaced water weight.
+        </div>
       </div>
 
       <!-- Find Purity Button -->
@@ -164,6 +176,22 @@
   </div>
 
   <script>
+    // Function to hide help content when user starts typing
+    function hideHelp(helpId, inputId) {
+      const helpContent = document.getElementById(helpId);
+      const inputField = document.getElementById(inputId);
+
+      if (inputField.value.length > 0) {
+        helpContent.style.display = 'none';
+      }
+    }
+
+    // Function to toggle help content visibility
+    function toggleHelp(helpId) {
+      const helpContent = document.getElementById(helpId);
+      helpContent.style.display = helpContent.style.display === "none" ? "block" : "none";
+    }
+
     // Function to handle keyboard navigation and focus
     function moveFocus(event, nextElementId) {
       if (event.key === "Enter") {
@@ -174,12 +202,6 @@
           calculatePurity(); // Trigger calculation when 'Enter' is pressed on the last input field
         }
       }
-    }
-
-    // Function to show help content
-    function showHelp(helpId) {
-      const helpContent = document.getElementById(helpId);
-      helpContent.style.display = helpContent.style.display === "none" ? "block" : "none";
     }
 
     // Function to calculate purity based on user inputs
