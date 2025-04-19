@@ -23,6 +23,7 @@
       padding: 20px;
       box-sizing: border-box;
       box-shadow: 0 0 20px #c7a33270;
+      border: 1px solid #c7a33240;
     }
 
     h1, h2 {
@@ -87,11 +88,10 @@
       transition: max-height 0.4s ease, padding 0.4s ease;
       background-color: #333;
       margin-top: 6px;
-      padding: 0 12px;
       border-left: 4px solid #c7a332;
       border-radius: 6px;
       font-size: 0.95em;
-      color: #fff;
+      padding: 0 12px;
     }
 
     .help-box.open {
@@ -167,6 +167,7 @@
         font-size: 1em;
         padding: 12px 40px 12px 12px;
       }
+
       .help-btn {
         width: 26px;
         height: 26px;
@@ -185,9 +186,7 @@
         <input type="number" id="dryWeight" placeholder="Dry Weight (g)" oninput="hideHelp('dryWeightHelp')" onkeydown="moveFocus(event, 'displacedWater')" />
         <button class="help-btn" onclick="toggleHelp('dryWeightHelp')">?</button>
       </div>
-      <div id="dryWeightHelp" class="help-box">
-        Use a precise scale to weigh your gold object dry.
-      </div>
+      <div id="dryWeightHelp" class="help-box">Use a precise scale to weigh your gold object dry.</div>
     </div>
 
     <div class="input-container">
@@ -195,9 +194,7 @@
         <input type="number" id="displacedWater" placeholder="Displaced Water (g)" oninput="hideHelp('displacedWaterHelp')" onkeydown="moveFocus(event, 'calculateButton')" />
         <button class="help-btn" onclick="toggleHelp('displacedWaterHelp')">?</button>
       </div>
-      <div id="displacedWaterHelp" class="help-box">
-        Suspend the gold fully in water. The weight gain = displaced water in grams.
-      </div>
+      <div id="displacedWaterHelp" class="help-box">Suspend the gold fully in water. The weight gain = displaced water in grams.</div>
     </div>
 
     <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
@@ -223,14 +220,39 @@
   </div>
 
   <script>
+    let audioCtx, oscillator, gainNode;
+
+    function startTone() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      oscillator = audioCtx.createOscillator();
+      gainNode = audioCtx.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // smooth mid tone
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // soft volume
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.start();
+    }
+
+    function stopTone() {
+      if (oscillator) {
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        oscillator.stop(audioCtx.currentTime + 0.5);
+      }
+    }
+
     function toggleHelp(id) {
       const box = document.getElementById(id);
-      box.classList.toggle('open');
+      box.classList.toggle("open");
     }
 
     function hideHelp(id) {
-      const box = document.getElementById(id);
-      box.classList.remove('open');
+      document.getElementById(id).classList.remove("open");
     }
 
     function moveFocus(event, nextId) {
@@ -238,22 +260,6 @@
         const nextEl = document.getElementById(nextId);
         if (nextEl) nextEl.focus();
       }
-    }
-
-    function playTapSound() {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
     }
 
     function calculatePurity() {
@@ -264,8 +270,7 @@
         return;
       }
 
-      if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
-      playTapSound();
+      if (navigator.vibrate) navigator.vibrate(20);
 
       const volume = displacedWater;
       const density = dryWeight / volume;
@@ -291,6 +296,7 @@
     function animatePuritySmooth(targetValue) {
       const display = document.getElementById("purityDisplay");
       let current = 0.0;
+      startTone();
 
       const step = () => {
         if (current < targetValue) {
@@ -298,6 +304,8 @@
           if (targetValue - current < 0.2) current = targetValue;
           display.textContent = current.toFixed(1);
           requestAnimationFrame(step);
+        } else {
+          stopTone();
         }
       };
 
