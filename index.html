@@ -10,10 +10,9 @@
       background-color: #1a1a1a;
       font-family: 'Segoe UI', sans-serif;
       color: #fff;
-      padding: 30px 10px;
+      padding: 20px 10px;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
     }
 
     .container {
@@ -28,7 +27,6 @@
     h1, h2 {
       color: #c7a332;
       text-align: center;
-      font-weight: 600;
       margin-bottom: 20px;
     }
 
@@ -37,8 +35,14 @@
       margin-bottom: 30px;
     }
 
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     input {
-      width: 100%;
+      flex: 1;
       padding: 14px;
       background-color: #3c3c3c;
       border: none;
@@ -47,11 +51,35 @@
       font-size: 1.1em;
       border-radius: 4px;
       transition: border-color 0.3s;
+      box-sizing: border-box;
     }
 
     input:focus {
       outline: none;
       border-bottom: 2px solid #c7a332;
+    }
+
+    .help-btn {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background-color: #c7a332;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .help-box {
+      display: none;
+      background-color: #333;
+      margin-top: 6px;
+      padding: 12px;
+      border-left: 4px solid #c7a332;
+      border-radius: 6px;
+      font-size: 0.95em;
     }
 
     button {
@@ -71,37 +99,6 @@
     button:active {
       background-color: #b28d2f;
       transform: scale(0.98);
-    }
-
-    .help-btn-container {
-      position: absolute;
-      right: 10px;
-      top: 12px;
-    }
-
-    .help-btn {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      border: none;
-      background-color: #c7a332;
-      color: white;
-      font-weight: bold;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .help-box {
-      display: none;
-      position: absolute;
-      top: 110%;
-      left: 0;
-      background-color: #333;
-      padding: 12px;
-      border-left: 4px solid #c7a332;
-      border-radius: 6px;
-      z-index: 10;
-      width: 100%;
     }
 
     .result-box {
@@ -141,9 +138,16 @@
       margin-top: 20px;
     }
 
-    @media (max-width: 600px) {
-      input, button {
+    @media (max-width: 480px) {
+      .help-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+      }
+
+      input {
         font-size: 1em;
+        padding: 12px;
       }
     }
   </style>
@@ -154,8 +158,8 @@
     <h2>Weight-Based Water Displacement</h2>
 
     <div class="input-container">
-      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" oninput="hideHelp('dryWeightHelp')" onkeydown="moveFocus(event, 'displacedWater')" />
-      <div class="help-btn-container">
+      <div class="input-row">
+        <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" oninput="hideHelp('dryWeightHelp')" onkeydown="moveFocus(event, 'displacedWater')" />
         <button class="help-btn" onclick="toggleHelp('dryWeightHelp')">?</button>
       </div>
       <div id="dryWeightHelp" class="help-box">
@@ -165,8 +169,8 @@
     </div>
 
     <div class="input-container">
-      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp')" onkeydown="moveFocus(event, 'calculateButton')" />
-      <div class="help-btn-container">
+      <div class="input-row">
+        <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp')" onkeydown="moveFocus(event, 'calculateButton')" />
         <button class="help-btn" onclick="toggleHelp('displacedWaterHelp')">?</button>
       </div>
       <div id="displacedWaterHelp" class="help-box">
@@ -251,10 +255,11 @@
       let current = 0;
       let digits = value.split('');
       target.innerHTML = `<b>Purity:</b> `;
+
       function reveal() {
         if (current < digits.length) {
           target.innerHTML += digits[current++];
-          setTimeout(reveal, 70);
+          setTimeout(reveal, 120); // slower
         } else {
           target.innerHTML += ' / 1000';
         }
