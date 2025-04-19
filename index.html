@@ -62,7 +62,9 @@
 
     .help-btn {
       position: absolute;
-      right: 8px;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
       background: #c7a332;
       border: none;
       color: white;
@@ -246,28 +248,29 @@
         : (density / alloyDensity) * alloyPurity;
 
       purity = Math.min(1000, Math.max(0, purity));
-      const formatted = purity.toFixed(1).padStart(5, '0');
+      const roundedPurity = parseFloat(purity.toFixed(1));
 
-      animatePurity(formatted);
-      animateBar(purity / 10);
+      animatePuritySmooth(roundedPurity);
+      animateBar(roundedPurity / 10);
 
       document.getElementById("methodUsed").textContent =
         density >= 18.35 ? "Method: Pure Gold Reference" : "Method: Calibrated Alloy Reference";
     }
 
-    function animatePurity(value) {
-      const target = document.getElementById("purityDisplay");
-      let current = 0;
-      let digits = value.split('');
-      target.innerHTML = "";
+    function animatePuritySmooth(targetValue) {
+      const display = document.getElementById("purityDisplay");
+      let current = 0.0;
 
-      function reveal() {
-        if (current < digits.length) {
-          target.innerHTML += digits[current++];
-          setTimeout(reveal, 160);
+      const step = () => {
+        if (current < targetValue) {
+          current += (targetValue - current) / 20;
+          if (targetValue - current < 0.2) current = targetValue;
+          display.textContent = current.toFixed(1);
+          requestAnimationFrame(step);
         }
-      }
-      reveal();
+      };
+
+      step();
     }
 
     function animateBar(percent) {
