@@ -210,95 +210,104 @@
     </div>
   </div>
 
-  <script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let toneOscillator, toneGain;
+ <script>
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  let toneOscillator, toneGain;
 
-    function toggleHelp(id) {
-      const box = document.getElementById(id);
-      box.classList.toggle('active');
+  function toggleHelp(id) {
+    const box = document.getElementById(id);
+    box.classList.toggle('active');
+  }
+
+  function moveFocus(event, nextId) {
+    if (event.key === "Enter") {
+      const nextEl = document.getElementById(nextId);
+      if (nextEl) nextEl.focus();
+    }
+  }
+
+  function resetForm() {
+    document.getElementById("dryWeight").value = "";
+    document.getElementById("displacedWater").value = "";
+    document.getElementById("purityDisplay").innerHTML = "—";
+    document.getElementById("purityBar").style.width = "0%";
+    document.getElementById("methodUsed").textContent = "";
+    stopTone();
+  }
+
+  function playDynamicTone(pitch) {
+    stopTone(); // In case it's already playing
+    toneOscillator = audioCtx.createOscillator();
+    toneGain = audioCtx.createGain();
+
+    toneOscillator.type = 'sine';
+    toneOscillator.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+    toneGain.gain.setValueAtTime(0.001, audioCtx.currentTime); // soft volume
+
+    toneOscillator.connect(toneGain).connect(audioCtx.destination);
+    toneOscillator.start();
+
+    // Smooth fade-in
+    toneGain.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 0.3);
+  }
+
+  function stopTone() {
+    if (toneGain) {
+      toneGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
+    }
+    if (toneOscillator) {
+      toneOscillator.stop(audioCtx.currentTime + 0.5);
+      toneOscillator.disconnect();
+      toneGain.disconnect();
+      toneOscillator = null;
+    }
+  }
+
+  function calculatePurity() {
+    const dry = parseFloat(document.getElementById("dryWeight").value);
+    const water = parseFloat(document.getElementById("displacedWater").value);
+    if (isNaN(dry) || isNaN(water) || water === 0) {
+      alert("Enter valid values.");
+      return;
     }
 
-    function moveFocus(event, nextId) {
-      if (event.key === "Enter") {
-        const nextEl = document.getElementById(nextId);
-        if (nextEl) nextEl.focus();
+    const density = dry / water;
+    const pure = 19.1882, alloy = 16.6497, alloyPurity = 876;
+    let purity = density >= 18.35 ? (density / pure) * 1000 : (density / alloy) * alloyPurity;
+    purity = Math.max(0, Math.min(1000, purity));
+    const finalPurity = parseFloat(purity.toFixed(1));
+
+    playDynamicTone(300 + finalPurity); // Pitch increases with purity
+    animatePurity(finalPurity);
+    animateBar(finalPurity / 10);
+
+    document.getElementById("methodUsed").textContent =
+      density >= 18.35 ? "Method: Pure Gold Reference" : "Method: Calibrated Alloy Reference";
+  }
+
+  function animatePurity(value) {
+    const display = document.getElementById("purityDisplay");
+    let current = 0.0;
+    const step = () => {
+      if (current < value) {
+        current += (value - current) / 18;
+        if (value - current < 0.2) current = value;
+        display.textContent = current.toFixed(1);
+        requestAnimationFrame(step);
+      } else {
+        stopTone();
       }
-    }
+    };
+    step();
+  }
 
-    function resetForm() {
-      document.getElementById("dryWeight").value = "";
-      document.getElementById("displacedWater").value = "";
-      document.getElementById("purityDisplay").innerHTML = "—";
-      document.getElementById("purityBar").style.width = "0%";
-      document.getElementById("methodUsed").textContent = "";
-      stopTone();
-    }
-
-    function playDynamicTone(pitch) {
-      toneOscillator = audioCtx.createOscillator();
-      toneGain = audioCtx.createGain();
-      toneOscillator.type = 'sine';
-      toneOscillator.frequency.setValueAtTime(pitch, audioCtx.currentTime);
-      toneGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      toneOscillator.connect(toneGain).connect(audioCtx.destination);
-      toneOscillator.start();
-    }
-
-    function stopTone() {
-      if (toneOscillator) {
-        toneOscillator.stop();
-        toneOscillator.disconnect();
-        toneGain.disconnect();
-        toneOscillator = null;
-      }
-    }
-
-    function calculatePurity() {
-      const dry = parseFloat(document.getElementById("dryWeight").value);
-      const water = parseFloat(document.getElementById("displacedWater").value);
-      if (isNaN(dry) || isNaN(water) || water === 0) {
-        alert("Enter valid values.");
-        return;
-      }
-
-      const density = dry / water;
-      const pure = 19.1882, alloy = 16.6497, alloyPurity = 876;
-      let purity = density >= 18.35 ? (density / pure) * 1000 : (density / alloy) * alloyPurity;
-      purity = Math.max(0, Math.min(1000, purity));
-      const finalPurity = parseFloat(purity.toFixed(1));
-
-      playDynamicTone(300 + finalPurity); // Pitch linked to purity
-      animatePurity(finalPurity);
-      animateBar(finalPurity / 10);
-
-      document.getElementById("methodUsed").textContent =
-        density >= 18.35 ? "Method: Pure Gold Reference" : "Method: Calibrated Alloy Reference";
-    }
-
-    function animatePurity(value) {
-      const display = document.getElementById("purityDisplay");
-      let current = 0.0;
-      const step = () => {
-        if (current < value) {
-          current += (value - current) / 20;
-          if (value - current < 0.2) current = value;
-          display.textContent = current.toFixed(1);
-          requestAnimationFrame(step);
-        } else {
-          stopTone();
-        }
-      };
-      step();
-    }
-
-    function animateBar(percent) {
-      const bar = document.getElementById("purityBar");
-      bar.style.width = "0%";
-      setTimeout(() => {
-        bar.style.width = percent + "%";
-      }, 50);
-    }
-  </script>
+  function animateBar(percent) {
+    const bar = document.getElementById("purityBar");
+    bar.style.width = "0%";
+    setTimeout(() => {
+      bar.style.width = percent + "%";
+    }, 50);
+  }
+</script>
 </body>
 </html>
