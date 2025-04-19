@@ -61,34 +61,42 @@
     }
 
     .help-btn {
-  position: absolute;
-  right: 10px;
-  top: 20%;
-  transform: translateY(-50%);
-  background: #c7a332;
-  border: none;
-  color: white;
-  font-weight: bold;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #c7a332;
+      border: none;
+      color: white;
+      font-weight: bold;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
 
     .help-box {
-      display: none;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.4s ease;
       background-color: #333;
       margin-top: 6px;
-      padding: 12px;
+      padding: 0 12px;
       border-left: 4px solid #c7a332;
       border-radius: 6px;
       font-size: 0.95em;
+      color: #fff;
+    }
+
+    .help-box.open {
+      max-height: 200px;
+      padding: 12px;
     }
 
     button {
@@ -217,11 +225,12 @@
   <script>
     function toggleHelp(id) {
       const box = document.getElementById(id);
-      box.style.display = box.style.display === 'block' ? 'none' : 'block';
+      box.classList.toggle('open');
     }
 
     function hideHelp(id) {
-      document.getElementById(id).style.display = 'none';
+      const box = document.getElementById(id);
+      box.classList.remove('open');
     }
 
     function moveFocus(event, nextId) {
@@ -229,6 +238,22 @@
         const nextEl = document.getElementById(nextId);
         if (nextEl) nextEl.focus();
       }
+    }
+
+    function playTapSound() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
     }
 
     function calculatePurity() {
@@ -239,7 +264,8 @@
         return;
       }
 
-      if (navigator.vibrate) navigator.vibrate(20);
+      if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
+      playTapSound();
 
       const volume = displacedWater;
       const density = dryWeight / volume;
