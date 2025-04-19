@@ -194,43 +194,44 @@
       }
     }
 
-    function calculatePurity() {
-      const dryWeight = parseFloat(document.getElementById("dryWeight").value);
-      const displacedWater = parseFloat(document.getElementById("displacedWater").value);
-      const resultBox = document.getElementById("displacementResult");
+    // Function to calculate purity based on user inputs
+function calculatePurity() {
+  const dryWeight = parseFloat(document.getElementById("dryWeight").value);
+  const displacedWater = parseFloat(document.getElementById("displacedWater").value);
+  const resultBox = document.getElementById("displacementResult");
 
-      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
-        alert("Please enter valid dry weight and displaced water weight.");
-        return;
-      }
+  if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
+    alert("Please enter valid dry weight and displaced water weight.");
+    return;
+  }
 
-      const volume = displacedWater;
-      const density = dryWeight / volume;
+  const volume = displacedWater;
+  const density = dryWeight / volume;
 
-      const pureGoldDensity = 19.1882;
-      const calibratedDensity = 16.6497;
-      const calibratedPurity = 876;
+  const alloyDensity = 16.6497; // Calibrated (approx. 876 purity)
+  const alloyPurity = 876;
+  const pureGoldDensity = 19.1882;
 
-      let preliminaryPurity = (density / pureGoldDensity) * 1000;
-      let finalPurity, methodUsed;
+  let purity, method;
 
-      if (preliminaryPurity > 950) {
-        finalPurity = preliminaryPurity;
-        methodUsed = `Standard Pure Gold Reference (${pureGoldDensity} g/cm³)`;
-      } else {
-        finalPurity = (density / calibratedDensity) * calibratedPurity;
-        methodUsed = `Calibrated Reference: ${calibratedPurity} / 1000 at ${calibratedDensity} g/cm³`;
-      }
+  if (density >= 18.35) {
+    purity = (density / pureGoldDensity) * 1000;
+    method = `Pure Gold Reference (19.1882 g/cm³)`;
+  } else {
+    purity = (density / alloyDensity) * alloyPurity;
+    method = `Calibrated Alloy Reference (16.6497 g/cm³ for 876)`;
+  }
 
-      finalPurity = Math.round(Math.min(1000, Math.max(0, finalPurity)));
+  purity = Math.min(1000, Math.max(0, purity));
+  const formattedPurity = purity.toFixed(1).padStart(5, '0');
 
-      resultBox.innerHTML = `
-        <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
-        <b>Density:</b> ${density.toFixed(4)} g/cm³<br>
-        <b>Estimated Purity:</b> ${finalPurity} / 1000<br>
-        <small>Method Used: ${methodUsed}</small>
-      `;
-    }
+  resultBox.innerHTML = `
+    <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
+    <b>Density:</b> ${density.toFixed(4)} g/cm³<br>
+    <b>Estimated Purity:</b> ${formattedPurity} / 1000<br>
+    <small>Method Used: ${method}</small>
+  `;
+}
 
     function resetForm() {
       document.getElementById("dryWeight").value = "";
