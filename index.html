@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gold Purity Estimator</title>
   <style>
- body {
-  background-color: #1a1a1a;
-  color: #fff;
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 40px 10px; /* Add space around the content */
-  display: flex;
-  justify-content: center;
-  align-items: flex-start; /* Align content to top */
-  overflow-x: hidden;
-}
+    body {
+      background-color: #1a1a1a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 40px 10px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-x: hidden;
+    }
     .container {
       width: 100%;
       max-width: 600px;
@@ -98,8 +98,6 @@
       right: 0;
       z-index: 10;
     }
-
-    /* Mobile optimization */
     @media (max-width: 600px) {
       h1 {
         font-size: 1.2em;
@@ -112,8 +110,6 @@
         padding: 15px;
       }
     }
-
-    /* Fullscreen Button */
     #fullscreenBtn {
       background-color: #c7a332;
       color: white;
@@ -133,7 +129,6 @@
     <div class="section">
       <h2>Weight-Based Water Displacement</h2>
 
-      <!-- Dry weight input with help button inside -->
       <div class="input-container">
         <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" oninput="hideHelp('dryWeightHelp', 'dryWeight')" onkeydown="moveFocus(event, 'displacedWater')" />
         <div class="help-btn-container" onclick="toggleHelp('dryWeightHelp')">
@@ -145,7 +140,6 @@
         </div>
       </div>
 
-      <!-- Displaced water input with help button inside -->
       <div class="input-container">
         <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp', 'displacedWater')" onkeydown="moveFocus(event, 'calculateButton')" />
         <div class="help-btn-container" onclick="toggleHelp('displacedWaterHelp')">
@@ -153,19 +147,15 @@
         </div>
         <div id="displacedWaterHelp" class="help-box">
           <b>How to Measure Water Displacement:</b><br>
-          Zero the scale with container of water on it then Suspend your gold object in water and note the weight on the scale. This is the displaced water weight.
+          Zero the scale with container of water on it. Suspend your gold object in water and note the weight on the scale. This is the displaced water weight.
         </div>
       </div>
 
-      <!-- Find Purity Button -->
       <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
-
-      <!-- Reset Button -->
       <button onclick="resetForm()">Reset</button>
 
       <div id="displacementResult" class="result-box"></div>
 
-      <!-- Instructions box -->
       <div class="instruction-box">
         <b>How to Measure Properly (Important!):</b><br><br>
         • Weigh the gold object dry.<br>
@@ -175,41 +165,35 @@
         • Avoid touching the water or letting the object rest on the container.
       </div>
 
-      <!-- Fullscreen button -->
       <button id="fullscreenBtn" onclick="enterFullScreen()">Enter Full Screen</button>
     </div>
   </div>
 
   <script>
-    // Function to hide help content when user starts typing
     function hideHelp(helpId, inputId) {
       const helpContent = document.getElementById(helpId);
       const inputField = document.getElementById(inputId);
-
       if (inputField.value.length > 0) {
         helpContent.style.display = 'none';
       }
     }
 
-    // Function to toggle help content visibility
     function toggleHelp(helpId) {
       const helpContent = document.getElementById(helpId);
       helpContent.style.display = helpContent.style.display === "none" ? "block" : "none";
     }
 
-    // Function to handle keyboard navigation and focus
     function moveFocus(event, nextElementId) {
       if (event.key === "Enter") {
         const nextElement = document.getElementById(nextElementId);
         if (nextElement) {
           nextElement.focus();
         } else {
-          calculatePurity(); // Trigger calculation when 'Enter' is pressed on the last input field
+          calculatePurity();
         }
       }
     }
 
-    // Function to calculate purity based on user inputs
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
@@ -223,55 +207,49 @@
       const volume = displacedWater;
       const density = dryWeight / volume;
 
-      const alloyDensity = 16.6497; // from calibration (876 purity)
-      const alloyPurity = 876;
       const pureGoldDensity = 19.1882;
+      const calibratedDensity = 16.6497;
+      const calibratedPurity = 876;
 
-      let purity, method;
+      let preliminaryPurity = (density / pureGoldDensity) * 1000;
+      let finalPurity, methodUsed;
 
-      if (density <= 18.0) {
-        purity = (density / alloyDensity) * alloyPurity;
-        method = `Calibrated (Alloy Reference: ${alloyPurity} / 1000 at ${alloyDensity} g/cm³)`;
+      if (preliminaryPurity > 950) {
+        finalPurity = preliminaryPurity;
+        methodUsed = `Standard Pure Gold Reference (${pureGoldDensity} g/cm³)`;
       } else {
-        purity = (density / pureGoldDensity) * 1000;
-        method = `Standard Pure Gold Reference (19.3 g/cm³)`;
+        finalPurity = (density / calibratedDensity) * calibratedPurity;
+        methodUsed = `Calibrated Reference: ${calibratedPurity} / 1000 at ${calibratedDensity} g/cm³`;
       }
 
-      purity = Math.round(Math.min(1000, Math.max(0, purity)));
+      finalPurity = Math.round(Math.min(1000, Math.max(0, finalPurity)));
 
       resultBox.innerHTML = `
         <b>Volume:</b> ${volume.toFixed(2)} cm³<br>
         <b>Density:</b> ${density.toFixed(4)} g/cm³<br>
-        <b>Estimated Purity:</b> ${purity} / 1000<br>
-        <small>Method Used: ${method}</small>
+        <b>Estimated Purity:</b> ${finalPurity} / 1000<br>
+        <small>Method Used: ${methodUsed}</small>
       `;
     }
 
-    // Function to reset the form and clear inputs
     function resetForm() {
       document.getElementById("dryWeight").value = "";
       document.getElementById("displacedWater").value = "";
       document.getElementById("displacementResult").innerHTML = "";
-      document.getElementById("dryWeight").focus();  // Reset focus to dry weight input
+      document.getElementById("dryWeight").focus();
     }
 
-    // Function to enter full-screen mode
     function enterFullScreen() {
       const elem = document.documentElement;
-
-      // For iPhone and Safari
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
-      } else if (elem.mozRequestFullScreen) { // Firefox
-        elem.mozRequestFullScreen();
-      } else if (elem.webkitRequestFullscreen) { // Chrome, Safari and Opera
+      } else if (elem.webkitRequestFullscreen) {
         elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) { // IE/Edge
+      } else if (elem.msRequestFullscreen) {
         elem.msRequestFullscreen();
       }
     }
 
-    // Automatically request full screen after the first user interaction
     document.getElementById("fullscreenBtn").addEventListener("click", function() {
       enterFullScreen();
     });
