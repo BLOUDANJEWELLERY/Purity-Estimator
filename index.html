@@ -7,10 +7,10 @@
   <style>
     body {
       margin: 0;
-      background-color: #111;
+      background: radial-gradient(circle at top left, #1a1a1a, #121212);
       font-family: 'Segoe UI', sans-serif;
       color: #fff;
-      padding: 15px 10px;
+      padding: 10px;
       display: flex;
       justify-content: center;
     }
@@ -18,12 +18,12 @@
     .container {
       width: 100%;
       max-width: 500px;
-      background: linear-gradient(145deg, #1e1e1e, #2b2b2b);
-      border-radius: 14px;
-      padding: 20px;
+      background: linear-gradient(to bottom right, #2b2b2b, #1e1e1e);
+      border-radius: 12px;
+      padding: 16px;
       box-sizing: border-box;
-      border: 2px solid #555;
-      box-shadow: inset 0 0 10px #000, 0 0 12px #000;
+      box-shadow: 0 0 12px #c7a33250;
+      border: 2px solid #c7a33240;
     }
 
     h1, h2 {
@@ -45,25 +45,23 @@
     input {
       width: 100%;
       padding: 12px 40px 12px 12px;
-      background: #0f0f0f;
+      background: linear-gradient(to bottom, #1f1f1f, #151515);
       border: 1px solid #444;
       border-radius: 6px;
-      color: #f2f2f2;
+      color: white;
       font-size: 1em;
-      box-shadow: inset 0 0 6px #000;
+      box-sizing: border-box;
+      transition: border-color 0.3s;
     }
 
     input:focus {
       outline: none;
-      border: 1px solid #c7a332;
-      background-color: #181818;
+      border-color: #c7a332;
     }
 
     .help-btn {
       position: absolute;
       right: 10px;
-      top: 20%;
-      transform: translateY(-50%);
       background: #c7a332;
       border: none;
       color: white;
@@ -79,7 +77,7 @@
     }
 
     .help-box {
-      background-color: #222;
+      background-color: #333;
       margin-top: 6px;
       padding: 10px;
       border-left: 4px solid #c7a332;
@@ -87,49 +85,49 @@
       font-size: 0.9em;
       max-height: 0;
       overflow: hidden;
+      transition: max-height 0.4s ease, opacity 0.4s ease;
       opacity: 0;
-      transition: max-height 0.3s ease, opacity 0.3s ease;
     }
 
     .help-box.active {
-      max-height: 100px;
+      max-height: 120px;
       opacity: 1;
     }
 
     button {
       width: 100%;
       padding: 12px;
-      margin-top: 10px;
-      font-size: 1.05em;
+      font-size: 1em;
       font-weight: bold;
       background-color: #c7a332;
       color: white;
       border: none;
       border-radius: 6px;
+      margin-top: 10px;
       cursor: pointer;
-      transition: background-color 0.3s;
+      transition: background-color 0.3s, transform 0.1s, box-shadow 0.2s;
     }
 
     button:active {
       background-color: #b28d2f;
+      transform: scale(0.98);
+      box-shadow: 0 0 12px #c7a33255;
     }
 
     .result-box {
-      background-color: #1a1a1a;
-      border-radius: 6px;
+      background-color: #292929;
+      border-radius: 5px;
       padding: 16px;
-      margin-top: 20px;
+      margin-top: 16px;
       text-align: center;
-      border: 1px solid #333;
     }
 
     .purity-bar-wrapper {
-      height: 18px;
-      background-color: #000;
+      height: 16px;
+      background-color: #181818;
       border-radius: 10px;
       margin-top: 10px;
       overflow: hidden;
-      border: 1px solid #444;
     }
 
     .purity-bar {
@@ -141,30 +139,39 @@
     }
 
     .purity-value {
-      font-size: 1.8em;
+      font-size: 2em;
       font-weight: bold;
-      color: #f2e18d;
-      margin-bottom: 8px;
+      color: #c7a332;
+      margin-bottom: 10px;
+      animation: subtle-glow 3s infinite ease-in-out;
+    }
+
+    @keyframes subtle-glow {
+      0%, 100% { text-shadow: 0 0 5px #c7a33233; }
+      50% { text-shadow: 0 0 12px #f2e18d66; }
+    }
+
+    .ripple {
+      animation: ripple-gold 1s ease-out;
+    }
+
+    @keyframes ripple-gold {
+      0% { box-shadow: 0 0 0 0 #f2e18d44; }
+      100% { box-shadow: 0 0 0 15px transparent; }
     }
 
     .instruction-box {
       margin-top: 20px;
-      background-color: #222;
+      background-color: #333;
       border-left: 4px solid #c7a332;
-      padding: 14px;
+      padding: 12px;
       border-radius: 6px;
-      font-size: 0.92em;
+      font-size: 0.9em;
     }
 
     @media (max-width: 480px) {
       input {
-        font-size: 0.95em;
-        padding: 10px 36px 10px 10px;
-      }
-      .help-btn {
-        width: 24px;
-        height: 24px;
-        font-size: 12px;
+        font-size: 1em;
       }
     }
   </style>
@@ -176,7 +183,7 @@
 
     <div class="input-container">
       <div class="input-wrapper">
-        <input type="number" id="dryWeight" placeholder="Dry Weight (g)" onkeydown="moveFocus(event, 'displacedWater')">
+        <input type="number" id="dryWeight" placeholder="Dry Weight (g)" onkeydown="moveFocus(event, 'displacedWater')" />
         <button class="help-btn" onclick="toggleHelp('dryWeightHelp')">?</button>
       </div>
       <div id="dryWeightHelp" class="help-box">Use a precise scale to weigh your gold object dry.</div>
@@ -184,10 +191,10 @@
 
     <div class="input-container">
       <div class="input-wrapper">
-        <input type="number" id="displacedWater" placeholder="Displaced Water (g)" onkeydown="moveFocus(event, 'calculateButton')">
+        <input type="number" id="displacedWater" placeholder="Displaced Water (g)" onkeydown="moveFocus(event, 'calculateButton')" />
         <button class="help-btn" onclick="toggleHelp('displacedWaterHelp')">?</button>
       </div>
-      <div id="displacedWaterHelp" class="help-box">Suspend the gold fully in water. The weight gain = displaced water in grams.</div>
+      <div id="displacedWaterHelp" class="help-box">Weigh while suspended in water. The increase is the water displaced.</div>
     </div>
 
     <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
@@ -202,112 +209,118 @@
     </div>
 
     <div class="instruction-box">
-      <strong>How to Measure Properly:</strong><br><br>
-      • Weigh the gold dry<br>
-      • Zero the scale with water container<br>
-      • Suspend the object fully<br>
-      • Record the increased weight (in grams)
+      <b>Instructions:</b><br>
+      • Weigh the item dry<br>
+      • Suspend in water & weigh<br>
+      • Input both values
     </div>
   </div>
 
- <script>
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  let toneOscillator, toneGain;
+  <script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let toneOsc, toneGain;
 
-  function toggleHelp(id) {
-    const box = document.getElementById(id);
-    box.classList.toggle('active');
-  }
-
-  function moveFocus(event, nextId) {
-    if (event.key === "Enter") {
-      const nextEl = document.getElementById(nextId);
-      if (nextEl) nextEl.focus();
-    }
-  }
-
-  function resetForm() {
-    document.getElementById("dryWeight").value = "";
-    document.getElementById("displacedWater").value = "";
-    document.getElementById("purityDisplay").innerHTML = "—";
-    document.getElementById("purityBar").style.width = "0%";
-    document.getElementById("methodUsed").textContent = "";
-    stopTone();
-  }
-
-  function playDynamicTone(pitch) {
-    stopTone(); // In case it's already playing
-    toneOscillator = audioCtx.createOscillator();
-    toneGain = audioCtx.createGain();
-
-    toneOscillator.type = 'sine';
-    toneOscillator.frequency.setValueAtTime(pitch, audioCtx.currentTime);
-    toneGain.gain.setValueAtTime(0.001, audioCtx.currentTime); // soft volume
-
-    toneOscillator.connect(toneGain).connect(audioCtx.destination);
-    toneOscillator.start();
-
-    // Smooth fade-in
-    toneGain.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 0.3);
-  }
-
-  function stopTone() {
-    if (toneGain) {
-      toneGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
-    }
-    if (toneOscillator) {
-      toneOscillator.stop(audioCtx.currentTime + 0.5);
-      toneOscillator.disconnect();
-      toneGain.disconnect();
-      toneOscillator = null;
-    }
-  }
-
-  function calculatePurity() {
-    const dry = parseFloat(document.getElementById("dryWeight").value);
-    const water = parseFloat(document.getElementById("displacedWater").value);
-    if (isNaN(dry) || isNaN(water) || water === 0) {
-      alert("Enter valid values.");
-      return;
+    function toggleHelp(id) {
+      const box = document.getElementById(id);
+      box.classList.toggle('active');
     }
 
-    const density = dry / water;
-    const pure = 19.1882, alloy = 16.6497, alloyPurity = 876;
-    let purity = density >= 18.35 ? (density / pure) * 1000 : (density / alloy) * alloyPurity;
-    purity = Math.max(0, Math.min(1000, purity));
-    const finalPurity = parseFloat(purity.toFixed(1));
-
-    playDynamicTone(300 + finalPurity); // Pitch increases with purity
-    animatePurity(finalPurity);
-    animateBar(finalPurity / 10);
-
-    document.getElementById("methodUsed").textContent =
-      density >= 18.35 ? "Method: Pure Gold Reference" : "Method: Calibrated Alloy Reference";
-  }
-
-  function animatePurity(value) {
-    const display = document.getElementById("purityDisplay");
-    let current = 0.0;
-    const step = () => {
-      if (current < value) {
-        current += (value - current) / 18;
-        if (value - current < 0.2) current = value;
-        display.textContent = current.toFixed(1);
-        requestAnimationFrame(step);
-      } else {
-        stopTone();
+    function moveFocus(event, nextId) {
+      if (event.key === "Enter") {
+        const nextEl = document.getElementById(nextId);
+        if (nextEl) nextEl.focus();
       }
-    };
-    step();
-  }
+    }
 
-  function animateBar(percent) {
-    const bar = document.getElementById("purityBar");
-    bar.style.width = "0%";
-    setTimeout(() => {
-      bar.style.width = percent + "%";
-    }, 50);
-  }
-</script>
+    function playSmoothTone(freq = 400) {
+      stopTone();
+      toneOsc = audioCtx.createOscillator();
+      toneGain = audioCtx.createGain();
+      toneOsc.type = "sine";
+      toneOsc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      toneGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      toneOsc.connect(toneGain).connect(audioCtx.destination);
+      toneOsc.start();
+    }
+
+    function stopTone() {
+      if (toneOsc) {
+        toneOsc.stop();
+        toneOsc.disconnect();
+        toneGain.disconnect();
+        toneOsc = null;
+      }
+    }
+
+    function calculatePurity() {
+      const dry = parseFloat(document.getElementById("dryWeight").value);
+      const wet = parseFloat(document.getElementById("displacedWater").value);
+      if (isNaN(dry) || isNaN(wet) || wet === 0) {
+        alert("Enter valid weights.");
+        return;
+      }
+
+      const volume = wet;
+      const density = dry / volume;
+      const pureGoldDensity = 19.1882;
+      const alloyDensity = 16.6497;
+      const alloyPurity = 876;
+
+      let purity = density >= 18.35
+        ? (density / pureGoldDensity) * 1000
+        : (density / alloyDensity) * alloyPurity;
+
+      purity = Math.min(1000, Math.max(0, purity));
+      const rounded = parseFloat(purity.toFixed(1));
+
+      animatePurity(rounded);
+      animateBar(rounded / 10);
+
+      if (rounded > 900) {
+        document.getElementById("purityDisplay").classList.add("ripple");
+        setTimeout(() => document.getElementById("purityDisplay").classList.remove("ripple"), 1000);
+      }
+
+      document.getElementById("methodUsed").textContent =
+        density >= 18.35 ? "Method: Pure Gold Ref." : "Method: Alloy Ref.";
+    }
+
+    function animatePurity(target) {
+      const display = document.getElementById("purityDisplay");
+      let current = 0.0;
+
+      playSmoothTone(300);
+
+      const animate = () => {
+        if (current < target) {
+          current += (target - current) / 20;
+          if (target - current < 0.2) current = target;
+          display.textContent = current.toFixed(1);
+          toneOsc.frequency.setValueAtTime(300 + current * 0.6, audioCtx.currentTime);
+          requestAnimationFrame(animate);
+        } else {
+          stopTone();
+        }
+      };
+
+      animate();
+    }
+
+    function animateBar(percent) {
+      const bar = document.getElementById("purityBar");
+      bar.style.width = "0%";
+      setTimeout(() => {
+        bar.style.width = percent + "%";
+      }, 100);
+    }
+
+    function resetForm() {
+      document.getElementById("dryWeight").value = "";
+      document.getElementById("displacedWater").value = "";
+      document.getElementById("purityDisplay").textContent = "—";
+      document.getElementById("purityBar").style.width = "0%";
+      document.getElementById("methodUsed").textContent = "";
+    }
+  </script>
 </body>
 </html>
