@@ -10,18 +10,17 @@
       background-color: #1a1a1a;
       font-family: 'Segoe UI', sans-serif;
       color: #fff;
-      padding: 16px 10px;
+      padding: 10px;
       display: flex;
       justify-content: center;
     }
 
     .container {
       width: 100%;
-      max-width: 500px;
+      max-width: 480px;
       background-color: #2c2c2c;
       border-radius: 12px;
-      padding: 20px;
-      box-sizing: border-box;
+      padding: 16px;
       box-shadow: 0 0 20px #c7a33270;
       border: 2px solid #c7a33250;
     }
@@ -33,23 +32,24 @@
     }
 
     .input-container {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .input-wrapper {
       position: relative;
+      display: flex;
+      align-items: center;
     }
 
     input {
       width: 100%;
-      padding: 12px 42px 12px 14px;
+      padding: 12px 36px 12px 12px;
       background-color: #3c3c3c;
       border: none;
       border-bottom: 2px solid #555;
       color: white;
       font-size: 1em;
       border-radius: 6px;
-      box-sizing: border-box;
     }
 
     input:focus {
@@ -59,7 +59,7 @@
 
     .help-btn {
       position: absolute;
-      right: 10px;
+      right: 8px;
       top: 50%;
       transform: translateY(-50%);
       background: #c7a332;
@@ -71,7 +71,6 @@
       border-radius: 50%;
       cursor: pointer;
       font-size: 14px;
-      line-height: 1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -79,46 +78,49 @@
 
     .help-box {
       background-color: #333;
-      margin-top: 6px;
-      padding: 12px;
+      margin-top: 4px;
+      padding: 10px;
       border-left: 4px solid #c7a332;
       border-radius: 6px;
-      font-size: 0.95em;
+      font-size: 0.9em;
       max-height: 0;
       overflow: hidden;
       opacity: 0;
-      transition: max-height 0.5s ease, opacity 0.5s ease;
+      transition: max-height 0.4s ease, opacity 0.4s ease;
     }
 
     .help-box.active {
-      max-height: 150px;
+      max-height: 100px;
       opacity: 1;
     }
 
-    button {
-      width: 100%;
-      padding: 12px;
+    .button-group {
+      display: flex;
+      gap: 10px;
       margin-top: 10px;
-      font-size: 1.05em;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      font-size: 1em;
       font-weight: bold;
       background-color: #c7a332;
       color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      transition: background-color 0.3s, transform 0.1s;
     }
 
     button:active {
       background-color: #b28d2f;
-      transform: scale(0.98);
     }
 
     .result-box {
       background-color: #444;
       border-radius: 5px;
-      padding: 18px 10px;
-      margin-top: 20px;
+      padding: 16px 10px;
+      margin-top: 18px;
       text-align: center;
     }
 
@@ -139,41 +141,31 @@
     }
 
     .purity-value {
-      font-size: 2.1em;
+      font-size: 1.8em;
       font-weight: bold;
-      color: #f3d567;
-      margin-bottom: 10px;
+      color: #c7a332;
+      margin-bottom: 8px;
       animation: shimmer 2s infinite linear;
     }
 
     @keyframes shimmer {
       0% { text-shadow: 0 0 5px #c7a33280; }
-      50% { text-shadow: 0 0 12px #fff199; }
+      50% { text-shadow: 0 0 10px #f2e18d; }
       100% { text-shadow: 0 0 5px #c7a33280; }
     }
 
     .instruction-box {
-      margin-top: 25px;
+      margin-top: 20px;
       background-color: #333;
       border-left: 4px solid #c7a332;
-      padding: 15px;
+      padding: 14px;
       border-radius: 6px;
-      font-size: 0.95em;
-    }
-
-    #fullscreenBtn {
-      margin-top: 20px;
+      font-size: 0.9em;
     }
 
     @media (max-width: 480px) {
-      input {
-        font-size: 1em;
-      }
-
-      .help-btn {
-        width: 24px;
-        height: 24px;
-        font-size: 12px;
+      .button-group {
+        flex-direction: column;
       }
     }
   </style>
@@ -203,8 +195,10 @@
       </div>
     </div>
 
-    <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
-    <button onclick="resetForm()">Reset</button>
+    <div class="button-group">
+      <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
+      <button onclick="resetForm()">Reset</button>
+    </div>
 
     <div class="result-box">
       <div id="purityDisplay" class="purity-value">—</div>
@@ -221,53 +215,40 @@
       • Suspend the object fully<br>
       • Record the increased weight (in grams)
     </div>
-
-    <button id="fullscreenBtn" onclick="enterFullScreen()">Enter Full Screen</button>
   </div>
 
   <script>
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let ambientTone, ambientGain;
+    let ambientOsc, ambientGain;
 
     function playAmbientTone() {
-      ambientTone = audioCtx.createOscillator();
+      ambientOsc = audioCtx.createOscillator();
       ambientGain = audioCtx.createGain();
-      ambientTone.type = 'sine';
-      ambientTone.frequency.setValueAtTime(400, audioCtx.currentTime);
-      ambientGain.gain.setValueAtTime(0.03, audioCtx.currentTime);
-      ambientTone.connect(ambientGain).connect(audioCtx.destination);
-      ambientTone.start();
+      ambientOsc.type = 'sine';
+      ambientOsc.frequency.setValueAtTime(280, audioCtx.currentTime);
+      ambientGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      ambientOsc.connect(ambientGain).connect(audioCtx.destination);
+      ambientOsc.start();
     }
 
     function stopAmbientTone() {
-      if (ambientTone) {
-        ambientTone.stop();
-        ambientTone.disconnect();
+      if (ambientOsc) {
+        ambientOsc.stop();
+        ambientOsc.disconnect();
         ambientGain.disconnect();
-        ambientTone = null;
+        ambientOsc = null;
       }
     }
 
     function playCelebrationTone() {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      osc.type = 'triangle';
       osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      osc.type = "triangle";
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
       osc.connect(gain).connect(audioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 1.2);
-    }
-
-    function playButtonTone() {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.07, audioCtx.currentTime);
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.3);
+      osc.stop(audioCtx.currentTime + 1.5);
     }
 
     function toggleHelp(id) {
@@ -287,8 +268,6 @@
     }
 
     function calculatePurity() {
-      playButtonTone();
-
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
       if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
@@ -298,9 +277,7 @@
 
       if (navigator.vibrate) navigator.vibrate(20);
 
-      const volume = displacedWater;
-      const density = dryWeight / volume;
-
+      const density = dryWeight / displacedWater;
       const pureGoldDensity = 19.1882;
       const alloyDensity = 16.6497;
       const alloyPurity = 876;
@@ -312,7 +289,7 @@
       purity = Math.min(1000, Math.max(0, purity));
       const roundedPurity = parseFloat(purity.toFixed(1));
 
-      animatePuritySmooth(roundedPurity);
+      animatePurity(roundedPurity);
       animateBar(roundedPurity / 10);
 
       if (roundedPurity > 900) playCelebrationTone();
@@ -321,15 +298,15 @@
         density >= 18.35 ? "Method: Pure Gold Reference" : "Method: Calibrated Alloy Reference";
     }
 
-    function animatePuritySmooth(targetValue) {
+    function animatePurity(targetValue) {
       const display = document.getElementById("purityDisplay");
-      let current = 0.0;
+      let current = 0;
 
       playAmbientTone();
 
       const step = () => {
         if (current < targetValue) {
-          current += (targetValue - current) / 20;
+          current += (targetValue - current) / 18;
           if (targetValue - current < 0.2) current = targetValue;
           display.textContent = current.toFixed(1);
           requestAnimationFrame(step);
@@ -356,13 +333,6 @@
       document.getElementById("purityBar").style.width = "0%";
       document.getElementById("methodUsed").textContent = "";
       document.getElementById("dryWeight").focus();
-    }
-
-    function enterFullScreen() {
-      const doc = document.documentElement;
-      if (doc.requestFullscreen) doc.requestFullscreen();
-      else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
-      else if (doc.msRequestFullscreen) doc.msRequestFullscreen();
     }
   </script>
 </body>
