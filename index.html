@@ -51,6 +51,12 @@
       margin-top: 15px;
       border-left: 4px solid #c7a332;
     }
+    .help-btn {
+      background-color: #555;
+      cursor: pointer;
+      margin-top: 5px;
+      padding: 5px 10px;
+    }
   </style>
 </head>
 <body>
@@ -59,23 +65,55 @@
 
     <div class="section">
       <h2>Option C: Weight-Based Water Displacement</h2>
-      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)">
-      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)">
-      <button onclick="calculatePurity()">Calculate Volume & Purity</button>
+
+      <!-- Dry weight input with help button -->
+      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" onkeydown="moveFocus(event, 'displacedWater')" />
+      <button class="help-btn" onclick="showHelp('dryWeightHelp')">Help</button>
+      <div id="dryWeightHelp" class="instruction-box" style="display:none;">
+        <b>How to Measure Dry Weight:</b><br>
+        Use a precise scale to measure the weight of your gold object. Ensure it is clean and dry.
+      </div>
+
+      <!-- Displaced water input with help button -->
+      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" onkeydown="moveFocus(event, 'calculateButton')" />
+      <button class="help-btn" onclick="showHelp('displacedWaterHelp')">Help</button>
+      <div id="displacedWaterHelp" class="instruction-box" style="display:none;">
+        <b>How to Measure Water Displacement:</b><br>
+        Suspend your gold object in water and note the increase in weight on the scale. This is the displaced water weight.
+      </div>
+
+      <!-- Calculate Button -->
+      <button id="calculateButton" onclick="calculatePurity()">Calculate Volume & Purity</button>
+
       <div id="displacementResult" class="result-box"></div>
 
+      <!-- Instructions box -->
       <div class="instruction-box">
         <b>How to Measure Properly (Important!):</b><br><br>
         • Weigh the gold object dry.<br>
-        • Place a water-filled container on the scale and zero it.<br>
-        • Suspend the object using a thin thread or wire so it doesn’t touch the container.<br>
-        • Submerge it fully — record the increase in weight shown (that’s the displaced water weight in grams = cm³).<br>
-        • Avoid hand contact with water or letting object rest on container.
+        • Zero the scale with the container.<br>
+        • Suspend the object fully in water without touching the sides.<br>
+        • Record the increase in weight (this is the displaced water weight in grams).<br>
+        • Avoid touching the water or letting the object rest on the container.
       </div>
     </div>
   </div>
 
   <script>
+    // Function to handle keyboard navigation and focus
+    function moveFocus(event, nextElementId) {
+      if (event.key === "Enter") {
+        document.getElementById(nextElementId).focus();
+      }
+    }
+
+    // Function to show help content
+    function showHelp(helpId) {
+      const helpContent = document.getElementById(helpId);
+      helpContent.style.display = helpContent.style.display === "none" ? "block" : "none";
+    }
+
+    // Function to calculate purity based on user inputs
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
