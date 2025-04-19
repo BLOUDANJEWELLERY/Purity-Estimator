@@ -119,6 +119,15 @@
       cursor: pointer;
       font-size: 1.1em;
       margin-top: 15px;
+      transition: background-color 0.3s;
+    }
+
+    #fullscreenBtn:hover {
+      background-color: #b28d2f;
+    }
+
+    #fullscreenBtn:active {
+      background-color: #9f7d2f;
     }
   </style>
 </head>
@@ -243,14 +252,22 @@
       const elem = document.documentElement;
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) {
+      } else if (elem.webkitRequestFullscreen) { // For Safari (iOS)
         elem.webkitRequestFullscreen();
       } else if (elem.msRequestFullscreen) {
         elem.msRequestFullscreen();
       }
     }
 
-    document.getElementById("fullscreenBtn").addEventListener("click", enterFullScreen);
+    document.getElementById("fullscreenBtn").addEventListener("click", function() {
+      enterFullScreen();
+    });
+
+    // Check if the user is on an iOS device to handle potential quirks
+    if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
+      // Optionally, you can display a message for iOS users
+      document.getElementById("fullscreenBtn").innerHTML = "Tap to Enter Full Screen (iOS)";
+    }
   </script>
 </body>
 </html>
