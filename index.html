@@ -23,7 +23,7 @@
       padding: 20px;
       box-sizing: border-box;
       box-shadow: 0 0 20px #c7a33270;
-      border: 1px solid #c7a33240;
+      border: 2px solid #c7a33250;
     }
 
     h1, h2 {
@@ -83,20 +83,21 @@
     }
 
     .help-box {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.4s ease, padding 0.4s ease;
       background-color: #333;
       margin-top: 6px;
+      padding: 12px;
       border-left: 4px solid #c7a332;
       border-radius: 6px;
       font-size: 0.95em;
-      padding: 0 12px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      opacity: 0;
     }
 
-    .help-box.open {
-      max-height: 200px;
-      padding: 12px;
+    .help-box.active {
+      max-height: 150px;
+      opacity: 1;
     }
 
     button {
@@ -147,6 +148,13 @@
       font-weight: bold;
       color: #c7a332;
       margin-bottom: 10px;
+      animation: shimmer 2s infinite linear;
+    }
+
+    @keyframes shimmer {
+      0% { text-shadow: 0 0 5px #c7a33280; }
+      50% { text-shadow: 0 0 10px #f2e18d; }
+      100% { text-shadow: 0 0 5px #c7a33280; }
     }
 
     .instruction-box {
@@ -167,7 +175,6 @@
         font-size: 1em;
         padding: 12px 40px 12px 12px;
       }
-
       .help-btn {
         width: 26px;
         height: 26px;
@@ -186,7 +193,9 @@
         <input type="number" id="dryWeight" placeholder="Dry Weight (g)" oninput="hideHelp('dryWeightHelp')" onkeydown="moveFocus(event, 'displacedWater')" />
         <button class="help-btn" onclick="toggleHelp('dryWeightHelp')">?</button>
       </div>
-      <div id="dryWeightHelp" class="help-box">Use a precise scale to weigh your gold object dry.</div>
+      <div id="dryWeightHelp" class="help-box">
+        Use a precise scale to weigh your gold object dry.
+      </div>
     </div>
 
     <div class="input-container">
@@ -194,7 +203,9 @@
         <input type="number" id="displacedWater" placeholder="Displaced Water (g)" oninput="hideHelp('displacedWaterHelp')" onkeydown="moveFocus(event, 'calculateButton')" />
         <button class="help-btn" onclick="toggleHelp('displacedWaterHelp')">?</button>
       </div>
-      <div id="displacedWaterHelp" class="help-box">Suspend the gold fully in water. The weight gain = displaced water in grams.</div>
+      <div id="displacedWaterHelp" class="help-box">
+        Suspend the gold fully in water. The weight gain = displaced water in grams.
+      </div>
     </div>
 
     <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
@@ -220,39 +231,46 @@
   </div>
 
   <script>
-    let audioCtx, oscillator, gainNode;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let purityTone, gainNode;
 
-    function startTone() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      oscillator = audioCtx.createOscillator();
+    function playAmbientTone() {
+      purityTone = audioCtx.createOscillator();
       gainNode = audioCtx.createGain();
-
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // smooth mid tone
-      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // soft volume
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      oscillator.start();
+      purityTone.type = 'sine';
+      purityTone.frequency.setValueAtTime(500, audioCtx.currentTime);
+      gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      purityTone.connect(gainNode).connect(audioCtx.destination);
+      purityTone.start();
     }
 
-    function stopTone() {
-      if (oscillator) {
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-        oscillator.stop(audioCtx.currentTime + 0.5);
+    function stopAmbientTone() {
+      if (purityTone) {
+        purityTone.stop();
+        purityTone.disconnect();
+        gainNode.disconnect();
+        purityTone = null;
       }
+    }
+
+    function playCelebrationTone() {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+      osc.type = "triangle";
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.5);
     }
 
     function toggleHelp(id) {
       const box = document.getElementById(id);
-      box.classList.toggle("open");
+      box.classList.toggle('active');
     }
 
     function hideHelp(id) {
-      document.getElementById(id).classList.remove("open");
+      document.getElementById(id).classList.remove('active');
     }
 
     function moveFocus(event, nextId) {
@@ -289,6 +307,8 @@
       animatePuritySmooth(roundedPurity);
       animateBar(roundedPurity / 10);
 
+      if (roundedPurity > 900) playCelebrationTone();
+
       document.getElementById("methodUsed").textContent =
         density >= 18.35 ? "Method: Pure Gold Reference" : "Method: Calibrated Alloy Reference";
     }
@@ -296,7 +316,8 @@
     function animatePuritySmooth(targetValue) {
       const display = document.getElementById("purityDisplay");
       let current = 0.0;
-      startTone();
+
+      playAmbientTone();
 
       const step = () => {
         if (current < targetValue) {
@@ -305,7 +326,7 @@
           display.textContent = current.toFixed(1);
           requestAnimationFrame(step);
         } else {
-          stopTone();
+          stopAmbientTone();
         }
       };
 
