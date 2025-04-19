@@ -10,29 +10,35 @@
       color: #fff;
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       overflow-x: hidden;
     }
     .container {
+      width: 100%;
       max-width: 600px;
-      margin: auto;
       background-color: #2c2c2c;
       padding: 20px;
       border-radius: 10px;
       box-sizing: border-box;
+      text-align: center;
     }
     h1, h2 {
-      text-align: center;
       color: #c7a332;
       font-size: 1.5em;
+      margin-bottom: 20px;
     }
     .input-container {
       position: relative;
       width: 100%;
+      margin-bottom: 20px;
     }
     input, button {
-      width: calc(100% - 20px);
-      padding: 10px;
+      width: 100%;
+      padding: 12px;
       margin: 10px 0;
       border-radius: 5px;
       border: none;
@@ -62,7 +68,7 @@
     }
     .help-btn-container {
       position: absolute;
-      left: 10px;
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
       cursor: pointer;
