@@ -19,9 +19,10 @@
       width: 100%;
       max-width: 600px;
       background-color: #2c2c2c;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 20px;
       box-sizing: border-box;
+      box-shadow: 0 0 20px #c7a33270;
     }
 
     h1, h2 {
@@ -35,21 +36,21 @@
       margin-bottom: 30px;
     }
 
-    .input-row {
+    .input-wrapper {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 10px;
     }
 
     input {
-      flex: 1;
-      padding: 14px;
+      width: 100%;
+      padding: 14px 42px 14px 14px;
       background-color: #3c3c3c;
       border: none;
       border-bottom: 2px solid #555;
       color: white;
       font-size: 1.1em;
-      border-radius: 4px;
+      border-radius: 6px;
       transition: border-color 0.3s;
       box-sizing: border-box;
     }
@@ -60,16 +61,17 @@
     }
 
     .help-btn {
-      flex-shrink: 0;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
+      position: absolute;
+      right: 8px;
+      background: #c7a332;
       border: none;
-      background-color: #c7a332;
       color: white;
       font-weight: bold;
-      font-size: 16px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
       cursor: pointer;
+      font-size: 14px;
     }
 
     .help-box {
@@ -104,7 +106,7 @@
     .result-box {
       background-color: #444;
       border-radius: 5px;
-      padding: 15px;
+      padding: 20px 10px;
       margin-top: 20px;
       text-align: center;
     }
@@ -125,6 +127,13 @@
       transition: width 2s ease-in-out;
     }
 
+    .purity-value {
+      font-size: 2em;
+      font-weight: bold;
+      color: #c7a332;
+      margin-bottom: 10px;
+    }
+
     .instruction-box {
       margin-top: 25px;
       background-color: #333;
@@ -139,15 +148,14 @@
     }
 
     @media (max-width: 480px) {
-      .help-btn {
-        width: 32px;
-        height: 32px;
-        font-size: 14px;
-      }
-
       input {
         font-size: 1em;
-        padding: 12px;
+        padding: 12px 40px 12px 12px;
+      }
+      .help-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 13px;
       }
     }
   </style>
@@ -155,27 +163,25 @@
 <body>
   <div class="container">
     <h1>Gold Purity Estimator</h1>
-    <h2>Weight-Based Water Displacement</h2>
+    <h2>Weight-Based Displacement</h2>
 
     <div class="input-container">
-      <div class="input-row">
-        <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" oninput="hideHelp('dryWeightHelp')" onkeydown="moveFocus(event, 'displacedWater')" />
+      <div class="input-wrapper">
+        <input type="number" id="dryWeight" placeholder="Dry Weight (g)" oninput="hideHelp('dryWeightHelp')" onkeydown="moveFocus(event, 'displacedWater')" />
         <button class="help-btn" onclick="toggleHelp('dryWeightHelp')">?</button>
       </div>
       <div id="dryWeightHelp" class="help-box">
-        <b>How to Measure Dry Weight:</b><br>
-        Use a precise scale to measure the weight of your gold object. Ensure it is clean and dry.
+        Use a precise scale to weigh your gold object dry.
       </div>
     </div>
 
     <div class="input-container">
-      <div class="input-row">
-        <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp')" onkeydown="moveFocus(event, 'calculateButton')" />
+      <div class="input-wrapper">
+        <input type="number" id="displacedWater" placeholder="Displaced Water (g)" oninput="hideHelp('displacedWaterHelp')" onkeydown="moveFocus(event, 'calculateButton')" />
         <button class="help-btn" onclick="toggleHelp('displacedWaterHelp')">?</button>
       </div>
       <div id="displacedWaterHelp" class="help-box">
-        <b>How to Measure Water Displacement:</b><br>
-        Suspend your gold object fully in water. The increase in weight is the displaced water weight in grams.
+        Suspend the gold fully in water. The weight gain = displaced water in grams.
       </div>
     </div>
 
@@ -183,7 +189,7 @@
     <button onclick="resetForm()">Reset</button>
 
     <div class="result-box">
-      <div id="purityDisplay"><b>Purity:</b> — / 1000</div>
+      <div id="purityDisplay" class="purity-value">—</div>
       <div class="purity-bar-wrapper">
         <div id="purityBar" class="purity-bar"></div>
       </div>
@@ -191,12 +197,11 @@
     </div>
 
     <div class="instruction-box">
-      <b>How to Measure Properly (Important!):</b><br><br>
-      • Weigh the gold object dry.<br>
-      • Zero the scale with the container.<br>
-      • Suspend the object fully in water.<br>
-      • Record the increase in weight (displaced water in grams).<br>
-      • Avoid touching the container or water surface.
+      <b>How to Measure Properly:</b><br><br>
+      • Weigh the gold dry<br>
+      • Zero the scale with water container<br>
+      • Suspend the object fully<br>
+      • Record the increased weight (in grams)
     </div>
 
     <button id="fullscreenBtn" onclick="enterFullScreen()">Enter Full Screen</button>
@@ -223,7 +228,7 @@
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
       if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
-        alert("Please enter valid weights.");
+        alert("Enter valid weights.");
         return;
       }
 
@@ -254,14 +259,12 @@
       const target = document.getElementById("purityDisplay");
       let current = 0;
       let digits = value.split('');
-      target.innerHTML = `<b>Purity:</b> `;
+      target.innerHTML = "";
 
       function reveal() {
         if (current < digits.length) {
           target.innerHTML += digits[current++];
-          setTimeout(reveal, 120); // slower
-        } else {
-          target.innerHTML += ' / 1000';
+          setTimeout(reveal, 160);
         }
       }
       reveal();
@@ -278,7 +281,7 @@
     function resetForm() {
       document.getElementById("dryWeight").value = "";
       document.getElementById("displacedWater").value = "";
-      document.getElementById("purityDisplay").innerHTML = "<b>Purity:</b> — / 1000";
+      document.getElementById("purityDisplay").innerHTML = "—";
       document.getElementById("purityBar").style.width = "0%";
       document.getElementById("methodUsed").textContent = "";
       document.getElementById("dryWeight").focus();
