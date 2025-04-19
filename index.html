@@ -145,13 +145,6 @@
       font-weight: bold;
       color: #c7a332;
       margin-bottom: 8px;
-      animation: shimmer 2s infinite linear;
-    }
-
-    @keyframes shimmer {
-      0% { text-shadow: 0 0 5px #c7a33280; }
-      50% { text-shadow: 0 0 10px #f2e18d; }
-      100% { text-shadow: 0 0 5px #c7a33280; }
     }
 
     .instruction-box {
@@ -219,32 +212,33 @@
 
   <script>
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let ambientOsc, ambientGain;
+    let ambientOscillator, ambientGain;
 
-    function playAmbientTone() {
-      ambientOsc = audioCtx.createOscillator();
+    function startTone() {
+      stopTone();
+      ambientOscillator = audioCtx.createOscillator();
       ambientGain = audioCtx.createGain();
-      ambientOsc.type = 'sine';
-      ambientOsc.frequency.setValueAtTime(280, audioCtx.currentTime);
+      ambientOscillator.type = 'sine';
+      ambientOscillator.frequency.setValueAtTime(260, audioCtx.currentTime);
       ambientGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      ambientOsc.connect(ambientGain).connect(audioCtx.destination);
-      ambientOsc.start();
+      ambientOscillator.connect(ambientGain).connect(audioCtx.destination);
+      ambientOscillator.start();
     }
 
-    function stopAmbientTone() {
-      if (ambientOsc) {
-        ambientOsc.stop();
-        ambientOsc.disconnect();
+    function stopTone() {
+      if (ambientOscillator) {
+        ambientOscillator.stop();
+        ambientOscillator.disconnect();
         ambientGain.disconnect();
-        ambientOsc = null;
+        ambientOscillator = null;
       }
     }
 
     function playCelebrationTone() {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-      osc.type = "triangle";
       gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
       osc.connect(gain).connect(audioCtx.destination);
       osc.start();
@@ -252,8 +246,7 @@
     }
 
     function toggleHelp(id) {
-      const box = document.getElementById(id);
-      box.classList.toggle('active');
+      document.getElementById(id).classList.toggle('active');
     }
 
     function hideHelp(id) {
@@ -274,8 +267,6 @@
         alert("Enter valid weights.");
         return;
       }
-
-      if (navigator.vibrate) navigator.vibrate(20);
 
       const density = dryWeight / displacedWater;
       const pureGoldDensity = 19.1882;
@@ -301,8 +292,7 @@
     function animatePurity(targetValue) {
       const display = document.getElementById("purityDisplay");
       let current = 0;
-
-      playAmbientTone();
+      startTone();
 
       const step = () => {
         if (current < targetValue) {
@@ -311,7 +301,7 @@
           display.textContent = current.toFixed(1);
           requestAnimationFrame(step);
         } else {
-          stopAmbientTone();
+          stopTone();
         }
       };
 
@@ -329,7 +319,7 @@
     function resetForm() {
       document.getElementById("dryWeight").value = "";
       document.getElementById("displacedWater").value = "";
-      document.getElementById("purityDisplay").innerHTML = "—";
+      document.getElementById("purityDisplay").textContent = "—";
       document.getElementById("purityBar").style.width = "0%";
       document.getElementById("methodUsed").textContent = "";
       document.getElementById("dryWeight").focus();
