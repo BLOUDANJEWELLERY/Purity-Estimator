@@ -225,10 +225,10 @@
 
       if (density >= 18.35) {
         purity = (density / pureGoldDensity) * 1000;
-        method = `Pure Gold Reference (19.1882 g/cm³)`;
+        method = `Pure Gold Reference`;
       } else {
         purity = (density / alloyDensity) * alloyPurity;
-        method = `Calibrated Alloy Reference (16.6497 g/cm³ for 876)`;
+        method = `Calibrated Alloy Reference`;
       }
 
       purity = Math.min(1000, Math.max(0, purity));
