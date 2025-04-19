@@ -11,9 +11,10 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 20px;
+      overflow-x: hidden; /* Prevent horizontal scrolling */
     }
     .container {
-      max-width: 900px;
+      max-width: 100%;
       margin: auto;
       background-color: #2c2c2c;
       padding: 20px;
@@ -22,15 +23,17 @@
     h1, h2 {
       text-align: center;
       color: #c7a332;
+      font-size: 1.5em;
     }
     input, button {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin: 10px 0;
       border-radius: 5px;
       border: none;
       background-color: #3c3c3c;
       color: white;
+      font-size: 1em;
     }
     button {
       background-color: #c7a332;
@@ -76,6 +79,32 @@
     }
     .help-btn:hover {
       background-color: #b28d2f;
+    }
+
+    /* Mobile optimization */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.2em;
+      }
+      input, button {
+        font-size: 1.2em;
+        padding: 14px;
+      }
+      .container {
+        padding: 15px;
+      }
+    }
+
+    /* Fullscreen Button (optional) */
+    #fullscreenBtn {
+      background-color: #c7a332;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      margin-top: 15px;
     }
   </style>
 </head>
@@ -123,6 +152,9 @@
         • Record the increase in weight (this is the displaced water weight in grams).<br>
         • Avoid touching the water or letting the object rest on the container.
       </div>
+
+      <!-- Fullscreen button -->
+      <button id="fullscreenBtn" onclick="enterFullScreen()">Enter Full Screen</button>
     </div>
   </div>
 
@@ -190,6 +222,26 @@
       document.getElementById("displacementResult").innerHTML = "";
       document.getElementById("dryWeight").focus();  // Reset focus to dry weight input
     }
+
+    // Function to enter full-screen mode
+    function enterFullScreen() {
+      const elem = document.documentElement;
+      
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.mozRequestFullScreen) { // Firefox
+        elem.mozRequestFullScreen();
+      } else if (elem.webkitRequestFullscreen) { // Chrome, Safari and Opera
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) { // IE/Edge
+        elem.msRequestFullscreen();
+      }
+    }
+
+    // Automatically request full screen when the page is loaded (optional)
+    window.onload = () => {
+      enterFullScreen();
+    };
   </script>
 </body>
 </html>
