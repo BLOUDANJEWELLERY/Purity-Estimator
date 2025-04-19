@@ -5,358 +5,286 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gold Purity Estimator</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background-color: #1a1a1a;
-      color: #fff;
-      font-family: 'Segoe UI', sans-serif;
-      overflow-x: hidden;
-    }
-
     body {
+      margin: 0;
+      background-color: #1a1a1a;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      padding: 30px 10px;
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      min-height: 100vh;
-      padding: 40px 10px;
-      position: relative;
     }
 
     .container {
       width: 100%;
-      max-width: 500px;
-      background: #1f1f1f;
-      padding: 25px 20px;
-      border-radius: 15px;
+      max-width: 600px;
+      background-color: #2c2c2c;
+      border-radius: 10px;
+      padding: 20px;
       box-sizing: border-box;
-      box-shadow: 0 0 15px rgba(199, 163, 50, 0.2);
-      position: relative;
-      z-index: 2;
     }
 
     h1, h2 {
       color: #c7a332;
-      font-size: 1.6em;
-      margin-bottom: 20px;
       text-align: center;
+      font-weight: 600;
+      margin-bottom: 20px;
     }
 
     .input-container {
       position: relative;
-      margin-bottom: 20px;
-    }
-
-    input, button {
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
-      padding: 12px;
-      margin: 10px 0;
-      font-size: 1em;
-      border-radius: 6px;
-      border: none;
+      margin-bottom: 30px;
     }
 
     input {
-      background-color: #333;
-      color: #fff;
+      width: 100%;
+      padding: 14px;
+      background-color: #3c3c3c;
+      border: none;
+      border-bottom: 2px solid #555;
+      color: white;
+      font-size: 1.1em;
+      border-radius: 4px;
+      transition: border-color 0.3s;
     }
 
     input:focus {
       outline: none;
       border-bottom: 2px solid #c7a332;
-      background-color: #2a2a2a;
     }
 
     button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      font-size: 1.1em;
+      font-weight: bold;
       background-color: #c7a332;
       color: white;
-      font-weight: bold;
-      transition: transform 0.1s ease, box-shadow 0.2s ease;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.1s;
     }
 
     button:active {
+      background-color: #b28d2f;
       transform: scale(0.98);
-      box-shadow: 0 0 10px rgba(199, 163, 50, 0.5);
     }
 
     .help-btn-container {
       position: absolute;
       right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
+      top: 12px;
     }
 
     .help-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: none;
       background-color: #c7a332;
       color: white;
       font-weight: bold;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
       font-size: 14px;
-      border: none;
-    }
-
-    .help-btn:hover {
-      background-color: #b28d2f;
+      cursor: pointer;
     }
 
     .help-box {
       display: none;
+      position: absolute;
+      top: 110%;
+      left: 0;
       background-color: #333;
-      padding: 10px;
-      margin-top: 6px;
-      font-size: 0.9em;
+      padding: 12px;
       border-left: 4px solid #c7a332;
+      border-radius: 6px;
+      z-index: 10;
+      width: 100%;
     }
 
     .result-box {
       background-color: #444;
+      border-radius: 5px;
       padding: 15px;
-      border-radius: 6px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .purity-bar-wrapper {
+      height: 20px;
+      background-color: #222;
+      border-radius: 10px;
       margin-top: 10px;
-      position: relative;
       overflow: hidden;
-    }
-
-    .instruction-box {
-      background-color: #2c2c2c;
-      padding: 15px;
-      margin-top: 15px;
-      font-size: 0.95em;
-      border-left: 4px solid #c7a332;
-    }
-
-    #fullscreenBtn {
-      background-color: #c7a332;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1.1em;
-      margin-top: 15px;
-      transition: background-color 0.3s;
-    }
-
-    #fullscreenBtn:hover {
-      background-color: #b28d2f;
-    }
-
-    .purity-bar-container {
-      margin-top: 15px;
-      background: #333;
-      border-radius: 8px;
-      overflow: hidden;
-      height: 24px;
-      box-shadow: inset 0 0 5px #000;
     }
 
     .purity-bar {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #c7a332, #ffde7b);
-      transition: width 1s ease;
-      animation: shimmer 2s infinite linear;
+      background: linear-gradient(to right, #c7a332, #f2e18d);
+      border-radius: 10px;
+      transition: width 2s ease-in-out;
     }
 
-    @keyframes shimmer {
-      0% { background-position: -100px; }
-      100% { background-position: 200px; }
+    .instruction-box {
+      margin-top: 25px;
+      background-color: #333;
+      border-left: 4px solid #c7a332;
+      padding: 15px;
+      border-radius: 6px;
+      font-size: 0.95em;
     }
 
-    canvas#goldDust {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 0;
+    #fullscreenBtn {
+      margin-top: 20px;
     }
 
     @media (max-width: 600px) {
-      body {
-        padding: 20px 5px;
-      }
-      .container {
-        padding: 20px 15px;
-      }
-      h1 {
-        font-size: 1.3em;
+      input, button {
+        font-size: 1em;
       }
     }
   </style>
 </head>
 <body>
-  <canvas id="goldDust"></canvas>
-
   <div class="container">
     <h1>Gold Purity Estimator</h1>
+    <h2>Weight-Based Water Displacement</h2>
 
     <div class="input-container">
-      <input type="number" id="dryWeight" placeholder="Dry Weight (g)" oninput="hideHelp('dryWeightHelp', 'dryWeight')" onkeydown="moveFocus(event, 'displacedWater')" />
-      <div class="help-btn-container" onclick="toggleHelp('dryWeightHelp')">
-        <button class="help-btn">?</button>
+      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" oninput="hideHelp('dryWeightHelp')" onkeydown="moveFocus(event, 'displacedWater')" />
+      <div class="help-btn-container">
+        <button class="help-btn" onclick="toggleHelp('dryWeightHelp')">?</button>
       </div>
       <div id="dryWeightHelp" class="help-box">
-        Use a precise scale to weigh the dry gold object.
+        <b>How to Measure Dry Weight:</b><br>
+        Use a precise scale to measure the weight of your gold object. Ensure it is clean and dry.
       </div>
     </div>
 
     <div class="input-container">
-      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp', 'displacedWater')" onkeydown="moveFocus(event, 'calculateButton')" />
-      <div class="help-btn-container" onclick="toggleHelp('displacedWaterHelp')">
-        <button class="help-btn">?</button>
+      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" oninput="hideHelp('displacedWaterHelp')" onkeydown="moveFocus(event, 'calculateButton')" />
+      <div class="help-btn-container">
+        <button class="help-btn" onclick="toggleHelp('displacedWaterHelp')">?</button>
       </div>
       <div id="displacedWaterHelp" class="help-box">
-        Weigh the increase when the object is suspended in water.
+        <b>How to Measure Water Displacement:</b><br>
+        Suspend your gold object fully in water. The increase in weight is the displaced water weight in grams.
       </div>
     </div>
 
     <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
     <button onclick="resetForm()">Reset</button>
 
-    <div id="displacementResult" class="result-box">
-      <div class="purity-bar-container">
+    <div class="result-box">
+      <div id="purityDisplay"><b>Purity:</b> — / 1000</div>
+      <div class="purity-bar-wrapper">
         <div id="purityBar" class="purity-bar"></div>
       </div>
+      <small id="methodUsed"></small>
     </div>
 
     <div class="instruction-box">
-      <b>Instructions:</b><br>
-      • Weigh the object dry.<br>
-      • Zero scale with water container.<br>
-      • Suspend object without touching.<br>
-      • Record displaced water weight.
+      <b>How to Measure Properly (Important!):</b><br><br>
+      • Weigh the gold object dry.<br>
+      • Zero the scale with the container.<br>
+      • Suspend the object fully in water.<br>
+      • Record the increase in weight (displaced water in grams).<br>
+      • Avoid touching the container or water surface.
     </div>
 
     <button id="fullscreenBtn" onclick="enterFullScreen()">Enter Full Screen</button>
   </div>
 
   <script>
-    function hideHelp(helpId, inputId) {
-      const helpBox = document.getElementById(helpId);
-      if (document.getElementById(inputId).value.length > 0) {
-        helpBox.style.display = "none";
-      }
+    function toggleHelp(id) {
+      const box = document.getElementById(id);
+      box.style.display = box.style.display === 'block' ? 'none' : 'block';
     }
 
-    function toggleHelp(helpId) {
-      const el = document.getElementById(helpId);
-      el.style.display = el.style.display === "block" ? "none" : "block";
+    function hideHelp(id) {
+      document.getElementById(id).style.display = 'none';
     }
 
     function moveFocus(event, nextId) {
       if (event.key === "Enter") {
-        const next = document.getElementById(nextId);
-        next ? next.focus() : calculatePurity();
+        const nextEl = document.getElementById(nextId);
+        if (nextEl) nextEl.focus();
       }
     }
 
     function calculatePurity() {
       const dryWeight = parseFloat(document.getElementById("dryWeight").value);
       const displacedWater = parseFloat(document.getElementById("displacedWater").value);
-      const resultBox = document.getElementById("displacementResult");
-      const purityBar = document.getElementById("purityBar");
-
-      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater <= 0) {
-        alert("Enter valid weights.");
+      if (isNaN(dryWeight) || isNaN(displacedWater) || displacedWater === 0) {
+        alert("Please enter valid weights.");
         return;
       }
+
+      if (navigator.vibrate) navigator.vibrate(20);
 
       const volume = displacedWater;
       const density = dryWeight / volume;
 
+      const pureGoldDensity = 19.1882;
       const alloyDensity = 16.6497;
       const alloyPurity = 876;
-      const pureGoldDensity = 19.1882;
 
-      let purity, method;
-
-      if (density >= 18.35) {
-        purity = (density / pureGoldDensity) * 1000;
-        method = `Pure Gold Reference`;
-      } else {
-        purity = (density / alloyDensity) * alloyPurity;
-        method = `Calibrated Alloy Reference`;
-      }
+      let purity = density >= 18.35
+        ? (density / pureGoldDensity) * 1000
+        : (density / alloyDensity) * alloyPurity;
 
       purity = Math.min(1000, Math.max(0, purity));
-      const formattedPurity = purity.toFixed(1).padStart(5, '0');
-      const barPercent = Math.min(100, (purity / 1000) * 100);
+      const formatted = purity.toFixed(1).padStart(5, '0');
 
-      purityBar.style.width = `${barPercent}%`;
+      animatePurity(formatted);
+      animateBar(purity / 10);
 
-      resultBox.innerHTML = `
-        <b>Purity:</b> ${formattedPurity} / 1000<br>
-        <small>Method Used: ${method}</small>
-        <div class="purity-bar-container"><div id="purityBar" class="purity-bar" style="width:${barPercent}%"></div></div>
-      `;
+      document.getElementById("methodUsed").textContent =
+        density >= 18.35 ? "Method: Pure Gold Reference" : "Method: Calibrated Alloy Reference";
+    }
 
-      if (navigator.vibrate) navigator.vibrate(50);
+    function animatePurity(value) {
+      const target = document.getElementById("purityDisplay");
+      let current = 0;
+      let digits = value.split('');
+      target.innerHTML = `<b>Purity:</b> `;
+      function reveal() {
+        if (current < digits.length) {
+          target.innerHTML += digits[current++];
+          setTimeout(reveal, 70);
+        } else {
+          target.innerHTML += ' / 1000';
+        }
+      }
+      reveal();
+    }
+
+    function animateBar(percent) {
+      const bar = document.getElementById("purityBar");
+      bar.style.width = "0%";
+      setTimeout(() => {
+        bar.style.width = percent + "%";
+      }, 50);
     }
 
     function resetForm() {
       document.getElementById("dryWeight").value = "";
       document.getElementById("displacedWater").value = "";
-      document.getElementById("displacementResult").innerHTML = `
-        <div class="purity-bar-container"><div id="purityBar" class="purity-bar"></div></div>`;
+      document.getElementById("purityDisplay").innerHTML = "<b>Purity:</b> — / 1000";
+      document.getElementById("purityBar").style.width = "0%";
+      document.getElementById("methodUsed").textContent = "";
+      document.getElementById("dryWeight").focus();
     }
 
     function enterFullScreen() {
-      const docEl = document.documentElement;
-      if (docEl.requestFullscreen) docEl.requestFullscreen();
-      else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
-      else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
+      const doc = document.documentElement;
+      if (doc.requestFullscreen) doc.requestFullscreen();
+      else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+      else if (doc.msRequestFullscreen) doc.msRequestFullscreen();
     }
-
-    // Gold dust animation
-    const canvas = document.getElementById("goldDust");
-    const ctx = canvas.getContext("2d");
-    let particles = [];
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-
-    function createParticles() {
-      for (let i = 0; i < 120; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          r: Math.random() * 1.2 + 0.5,
-          d: Math.random() * 0.6 + 0.2
-        });
-      }
-    }
-
-    function drawParticles() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#c7a332";
-      particles.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2, false);
-        ctx.fill();
-        p.y += p.d;
-        if (p.y > canvas.height) {
-          p.y = 0;
-          p.x = Math.random() * canvas.width;
-        }
-      });
-      requestAnimationFrame(drawParticles);
-    }
-
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-    createParticles();
-    drawParticles();
   </script>
 </body>
 </html>
