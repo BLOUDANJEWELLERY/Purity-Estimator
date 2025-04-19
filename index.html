@@ -11,10 +11,10 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 20px;
-      overflow-x: hidden; /* Prevent horizontal scrolling */
+      overflow-x: hidden;
     }
     .container {
-      max-width: 100%;
+      max-width: 600px;
       margin: auto;
       background-color: #2c2c2c;
       padding: 20px;
@@ -27,7 +27,7 @@
     }
     input, button {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       margin: 10px 0;
       border-radius: 5px;
       border: none;
@@ -55,31 +55,30 @@
       border-left: 4px solid #c7a332;
     }
     .help-btn-container {
-      position: relative;
-      display: inline-block;
-      width: 100%;
-      margin-top: 5px;
+      margin-top: -30px; /* Adjust help button positioning */
+      text-align: right;
     }
     .help-btn {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
       background-color: #c7a332;
       color: white;
       font-weight: bold;
       border-radius: 50%;
       width: 24px;
       height: 24px;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       font-size: 14px;
       border: none;
+      margin-left: 10px;
     }
     .help-btn:hover {
       background-color: #b28d2f;
+    }
+    .help-btn-container {
+      text-align: right;
+      margin-top: -20px;
     }
 
     /* Mobile optimization */
@@ -116,9 +115,11 @@
     <div class="section">
       <h2>Option C: Weight-Based Water Displacement</h2>
 
-      <!-- Dry weight input with help button -->
+      <!-- Dry weight input -->
+      <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" onkeydown="moveFocus(event, 'displacedWater')" />
+
+      <!-- Help button for dry weight -->
       <div class="help-btn-container">
-        <input type="number" id="dryWeight" placeholder="Dry Weight of Gold (g)" onkeydown="moveFocus(event, 'displacedWater')" />
         <button class="help-btn" onclick="showHelp('dryWeightHelp')">?</button>
       </div>
       <div id="dryWeightHelp" class="instruction-box" style="display:none;">
@@ -126,9 +127,11 @@
         Use a precise scale to measure the weight of your gold object. Ensure it is clean and dry.
       </div>
 
-      <!-- Displaced water input with help button -->
+      <!-- Displaced water input -->
+      <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" onkeydown="moveFocus(event, 'calculateButton')" />
+
+      <!-- Help button for displaced water -->
       <div class="help-btn-container">
-        <input type="number" id="displacedWater" placeholder="Displaced Water Weight (g)" onkeydown="moveFocus(event, 'calculateButton')" />
         <button class="help-btn" onclick="showHelp('displacedWaterHelp')">?</button>
       </div>
       <div id="displacedWaterHelp" class="instruction-box" style="display:none;">
@@ -227,7 +230,8 @@
     // Function to enter full-screen mode
     function enterFullScreen() {
       const elem = document.documentElement;
-      
+
+      // For iPhone and Safari
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
       } else if (elem.mozRequestFullScreen) { // Firefox
