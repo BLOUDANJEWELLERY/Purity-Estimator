@@ -282,7 +282,7 @@
       }
 
       let purity = (density / closest.density) * closest.purity;
-      purity = Math.min(1000, Math.max(0, purity));
+      purity = Math.min(999.9, Math.max(0, purity));
       const rounded = parseFloat(purity.toFixed(1));
 
       animatePurity(rounded);
