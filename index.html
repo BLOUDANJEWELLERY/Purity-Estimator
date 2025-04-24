@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gold Purity Estimator</title>
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #1a1a1a, #121212);
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: linear-gradient(to bottom right, #2b2b2b, #1e1e1e);
+      border-radius: 12px;
+      padding: 16px;
+      box-sizing: border-box;
+      box-shadow: 0 0 12px #c7a33250;
+      border: 2px solid #c7a33240;
+    }
+
+    h1, h2 {
+      color: #c7a332;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .input-container {
+      margin-bottom: 12px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 40px 12px 12px;
+      background: linear-gradient(to bottom, #1f1f1f, #151515);
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: white;
+      font-size: 1em;
+      box-sizing: border-box;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #c7a332;
+    }
+
+    .help-btn {
+      position: absolute;
+      right: 10px;
+      background: #c7a332;
+      border: none;
+      color: white;
+      font-weight: bold;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .help-box {
+      background-color: #333;
+      margin-top: 6px;
+      padding: 10px;
+      border-left: 4px solid #c7a332;
+      border-radius: 6px;
+      font-size: 0.9em;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, opacity 0.4s ease;
+      opacity: 0;
+    }
+
+    .help-box.active {
+      max-height: 120px;
+      opacity: 1;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 1em;
+      font-weight: bold;
+      background-color: #c7a332;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.1s, box-shadow 0.2s;
+    }
+
+    button:active {
+      background-color: #b28d2f;
+      transform: scale(0.98);
+      box-shadow: 0 0 12px #c7a33255;
+    }
+
+    .result-box {
+      background-color: #292929;
+      border-radius: 5px;
+      padding: 16px;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .purity-bar-wrapper {
+      height: 16px;
+      background-color: #181818;
+      border-radius: 10px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .purity-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, #c7a332, #f2e18d);
+      border-radius: 10px;
+      transition: width 2s ease-in-out;
+    }
+
+    .purity-value {
+      font-size: 2em;
+      font-weight: bold;
+      color: #c7a332;
+      margin-bottom: 10px;
+      animation: subtle-glow 3s infinite ease-in-out;
+    }
+
+    @keyframes subtle-glow {
+      0%, 100% { text-shadow: 0 0 5px #c7a33233; }
+      50% { text-shadow: 0 0 12px #f2e18d66; }
+    }
+
+    .ripple {
+      animation: ripple-gold 1s ease-out;
+    }
+
+    @keyframes ripple-gold {
+      0% { box-shadow: 0 0 0 0 #f2e18d44; }
+      100% { box-shadow: 0 0 0 15px transparent; }
+    }
+
+    .instruction-box {
+      margin-top: 20px;
+      background-color: #333;
+      border-left: 4px solid #c7a332;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 0.9em;
+    }
+
+    @media (max-width: 480px) {
+      input {
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gold Purity Estimator</h1>
+    <h2>Weight-Based Displacement</h2>
+
+    <div class="input-container">
+      <div class="input-wrapper">
+        <input type="number" id="dryWeight" placeholder="Dry Weight (g)" onkeydown="moveFocus(event, 'displacedWater')" />
+        <button class="help-btn" onclick="toggleHelp('dryWeightHelp')">?</button>
+      </div>
+      <div id="dryWeightHelp" class="help-box">Use a precise scale to weigh your gold object dry.</div>
+    </div>
+
+    <div class="input-container">
+      <div class="input-wrapper">
+        <input type="number" id="displacedWater" placeholder="Displaced Water (g)" onkeydown="moveFocus(event, 'calculateButton')" />
+        <button class="help-btn" onclick="toggleHelp('displacedWaterHelp')">?</button>
+      </div>
+      <div id="displacedWaterHelp" class="help-box">Weigh while suspended in water. The increase is the water displaced.</div>
+    </div>
+
+    <button id="calculateButton" onclick="calculatePurity()">Find Purity</button>
+    <button onclick="resetForm()">Reset</button>
+
+    <div class="result-box">
+      <div id="purityDisplay" class="purity-value">—</div>
+      <div class="purity-bar-wrapper">
+        <div id="purityBar" class="purity-bar"></div>
+      </div>
+      <small id="methodUsed"></small>
+    </div>
+
+    <div class="instruction-box">
+      <b>Instructions:</b><br>
+      • Weigh the item dry<br>
+      • Suspend in water & weigh<br>
+      • Input both values
+    </div>
+  </div>
+
+  <script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let toneOsc, toneGain;
+
+    function toggleHelp(id) {
+      const box = document.getElementById(id);
+      box.classList.toggle('active');
+    }
+
+    function moveFocus(event, nextId) {
+      if (event.key === "Enter") {
+        const nextEl = document.getElementById(nextId);
+        if (nextEl) nextEl.focus();
+      }
+    }
+
+    function playSmoothTone(freq = 400) {
+      stopTone();
+      toneOsc = audioCtx.createOscillator();
+      toneGain = audioCtx.createGain();
+      toneOsc.type = "sine";
+      toneOsc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      toneGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      toneOsc.connect(toneGain).connect(audioCtx.destination);
+      toneOsc.start();
+    }
+
+    function stopTone() {
+      if (toneOsc) {
+        toneOsc.stop();
+        toneOsc.disconnect();
+        toneGain.disconnect();
+        toneOsc = null;
+      }
+    }
+
+    function calculatePurity() {
+      const dry = parseFloat(document.getElementById("dryWeight").value);
+      const wet = parseFloat(document.getElementById("displacedWater").value);
+      if (isNaN(dry) || isNaN(wet) || wet === 0) {
+        alert("Enter valid weights.");
+        return;
+      }
+
+      const volume = wet;
+      const density = dry / volume;
+
+      const references = [
+        { name: "Pure Gold", density: 19.1882, purity: 1000 },
+        { name: "Alloy 995", density: 19.0905, purity: 995},
+        { name: "Alloy 876", density: 16.5952, purity: 876 },
+        { name: "Alloy 872-2", density: 16.7486, purity: 872},
+        { name: "Alloy 872", density: 16.5825, purity: 872 },
+        { name: "Alloy 876-2", density: 16.6465, purity: 876},
+        { name: "Alloy 761", density: 15.2584, purity: 761 },
+        { name: "Alloy 761-2", density: 15.2573 purity: 761}
+      ];
+
+      let closest = references[0];
+      let minDiff = Math.abs(density - closest.density);
+
+      for (let i = 1; i < references.length; i++) {
+        const diff = Math.abs(density - references[i].density);
+        if (diff < minDiff) {
+          closest = references[i];
+          minDiff = diff;
+        }
+      }
+
+      let purity = (density / closest.density) * closest.purity;
+      purity = Math.min(999.9, Math.max(0, purity));
+      const rounded = parseFloat(purity.toFixed(1));
+
+      animatePurity(rounded);
+      animateBar(rounded / 10);
+
+      if (rounded > 900) {
+        document.getElementById("purityDisplay").classList.add("ripple");
+        setTimeout(() => document.getElementById("purityDisplay").classList.remove("ripple"), 1000);
+      }
+
+      document.getElementById("methodUsed").textContent = `Method: ${closest.name}`;
+    }
+
+    function animatePurity(target) {
+      const display = document.getElementById("purityDisplay");
+      let current = 0.0;
+
+      playSmoothTone(300);
+
+      const animate = () => {
+        if (current < target) {
+          current += (target - current) / 20;
+          if (target - current < 0.2) current = target;
+          display.textContent = current.toFixed(1);
+          toneOsc.frequency.setValueAtTime(300 + current * 0.6, audioCtx.currentTime);
+          requestAnimationFrame(animate);
+        } else {
+          stopTone();
+        }
+      };
+
+      animate();
+    }
+
+    function animateBar(percent) {
+      const bar = document.getElementById("purityBar");
+      bar.style.width = "0%";
+      setTimeout(() => {
+        bar.style.width = percent + "%";
+      }, 100);
+    }
+
+    function resetForm() {
+      document.getElementById("dryWeight").value = "";
+      document.getElementById("displacedWater").value = "";
+      document.getElementById("purityDisplay").textContent = "—";
+      document.getElementById("purityBar").style.width = "0%";
+      document.getElementById("methodUsed").textContent = "";
+    }
+  </script>
+</body>
+</html>
