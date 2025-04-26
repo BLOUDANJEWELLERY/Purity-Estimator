@@ -265,71 +265,40 @@ function calculatePurity() {
   const density = dry / volume;
 
   const references = [
-    { name: "761", density: 15.25725995, purity: 761 },
-    { name: "761-2", density: 15.25838323, purity: 761 },
-    { name: "872", density: 16.61373170, purity: 872 },
-    { name: "872-2", density: 16.7481357, purity: 872 },
-    { name: "876", density: 16.59523810, purity: 876 },
-    { name: "877", density: 16.62683419, purity: 877 },
-    { name: "995", density: 19.09050276, purity: 995 },
-    { name: "999.9", density: 19.28126438, purity: 999.9 }
+    { density: 15.25725995, purity: 761 },
+    { density: 15.25838323, purity: 761 },
+    { density: 16.61373170, purity: 872 },
+    { density: 16.74813570, purity: 872 },
+    { density: 16.59523810, purity: 876 },
+    { density: 16.62683419, purity: 877 },
+    { density: 19.09050276, purity: 995 },
+    { density: 19.28126438, purity: 999.9 }
   ];
 
-  const closeRefs = references.filter(r => Math.abs(r.density - density) <= 0.01);
+  references.sort((a, b) => a.density - b.density);
 
-  let estimatedPurity = null;
+  let lower = references[0];
+  let upper = references[references.length - 1];
 
-  if (closeRefs.length > 0) {
-    const purities = closeRefs.map(r => r.purity);
-    const maxPurity = Math.max(...purities);
-    const minPurity = Math.min(...purities);
-
-    if (maxPurity - minPurity <= 5) {
-      estimatedPurity = purities.reduce((a, b) => a + b, 0) / purities.length;
-    } else {
-      const midPurity = (minPurity + maxPurity) / 2;
-      const lowerSide = closeRefs.filter(r => r.purity <= midPurity);
-      const upperSide = closeRefs.filter(r => r.purity > midPurity);
-
-      const lowerScore = lowerSide.reduce((sum, r) => sum + (1 / Math.abs(r.density - density)), 0);
-      const upperScore = upperSide.reduce((sum, r) => sum + (1 / Math.abs(r.density - density)), 0);
-
-      const chosenSide = lowerScore >= upperScore ? lowerSide : upperSide;
-      chosenSide.sort((a, b) => Math.abs(a.density - density) - Math.abs(b.density - density));
-      estimatedPurity = chosenSide[0].purity;
-    }
-  } else {
-    // Custom interpolation
-    references.sort((a, b) => a.density - b.density);
-
-    let lower = null, upper = null;
-    for (let i = 0; i < references.length - 1; i++) {
-      if (references[i].density <= density && references[i + 1].density >= density) {
-        lower = references[i];
-        upper = references[i + 1];
-        break;
-      }
-    }
-
-    if (lower && upper) {
-      const ratio = (density - lower.density) / (upper.density - lower.density);
-      estimatedPurity = lower.purity + ratio * (upper.purity - lower.purity);
-    } else {
-      const closest = references.reduce((prev, curr) =>
-        Math.abs(curr.density - density) < Math.abs(prev.density - density) ? curr : prev
-      );
-      estimatedPurity = (density / closest.density) * closest.purity;
+  for (let i = 0; i < references.length - 1; i++) {
+    if (density >= references[i].density && density <= references[i + 1].density) {
+      lower = references[i];
+      upper = references[i + 1];
+      break;
     }
   }
 
-  // Custom rounding or weighting for closer approximation to your expected value
-  if (estimatedPurity < 874) {
-    estimatedPurity = Math.min(874, estimatedPurity + 2); // Adjust for closer match
-  } else if (estimatedPurity > 874) {
-    estimatedPurity = Math.max(874, estimatedPurity - 2); // Adjust for closer match
+  let estimatedPurity;
+
+  if (lower.density === upper.density) {
+    estimatedPurity = lower.purity;
+  } else {
+    const ratio = (density - lower.density) / (upper.density - lower.density);
+    estimatedPurity = lower.purity + ratio * (upper.purity - lower.purity);
   }
 
   estimatedPurity = Math.min(999.9, Math.max(700, estimatedPurity));
+
   const rounded = parseFloat(estimatedPurity.toFixed(1));
 
   animatePurity(rounded);
@@ -340,7 +309,7 @@ function calculatePurity() {
     setTimeout(() => document.getElementById("purityDisplay").classList.remove("ripple"), 1000);
   }
 
-  document.getElementById("methodUsed").textContent = `Estimated from density matching`;
+  document.getElementById("methodUsed").textContent = `Interpolated from density`;
 }
 function animatePurity(target) {
   const display = document.getElementById("purityDisplay");
