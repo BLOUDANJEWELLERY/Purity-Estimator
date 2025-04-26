@@ -299,6 +299,13 @@ function calculatePurity() {
 
   estimatedPurity = Math.min(999.9, Math.max(700, estimatedPurity));
 
+  // Adjusting the purity based on the delta rule
+  const delta = estimatedPurity - 874;
+  if (Math.abs(delta) <= 5) {
+    estimatedPurity -= delta * 0.4;
+    estimatedPurity = Math.round(estimatedPurity);
+  }
+
   const rounded = parseFloat(estimatedPurity.toFixed(1));
 
   animatePurity(rounded);
@@ -309,8 +316,14 @@ function calculatePurity() {
     setTimeout(() => document.getElementById("purityDisplay").classList.remove("ripple"), 1000);
   }
 
+  // Adding the holographic flicker and other visual effects
+  if (rounded > 950) {
+    document.getElementById("purityDisplay").classList.add("celebration");
+  }
+
   document.getElementById("methodUsed").textContent = `Interpolated from density`;
 }
+
 function animatePurity(target) {
   const display = document.getElementById("purityDisplay");
   let current = 0.0;
