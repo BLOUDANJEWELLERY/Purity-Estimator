@@ -275,7 +275,6 @@
     { name: "999.9", density: 19.28126438, purity: 999.9 }
   ];
 
-  // Step 1: Find references where density is within ±0.01
   const closeRefs = references.filter(r => Math.abs(r.density - density) <= 0.01);
 
   let estimatedPurity = null;
@@ -285,31 +284,32 @@
     const maxPurity = Math.max(...purities);
     const minPurity = Math.min(...purities);
 
-    // Step 2: If all purities close (within ±5), use average
     if (maxPurity - minPurity <= 5) {
+      // Tight cluster, average the purities
       estimatedPurity = purities.reduce((a, b) => a + b, 0) / purities.length;
     } else {
-      // Step 3: Ambiguity resolution
-      const lowerSide = references.filter(r => r.purity <= (minPurity + maxPurity) / 2);
-      const upperSide = references.filter(r => r.purity > (minPurity + maxPurity) / 2);
+      // Ambiguity resolution - scoring method
+      const midPurity = (minPurity + maxPurity) / 2;
+      const lowerSide = closeRefs.filter(r => r.purity <= midPurity);
+      const upperSide = closeRefs.filter(r => r.purity > midPurity);
 
-      const lowerScore = lowerSide.reduce((sum, r) => sum + 1 / Math.abs(r.density - density), 0);
-      const upperScore = upperSide.reduce((sum, r) => sum + 1 / Math.abs(r.density - density), 0);
+      const lowerScore = lowerSide.reduce((sum, r) => sum + (1 / Math.abs(r.density - density)), 0);
+      const upperScore = upperSide.reduce((sum, r) => sum + (1 / Math.abs(r.density - density)), 0);
 
-      const chosenSide = lowerScore > upperScore ? lowerSide : upperSide;
+      const chosenSide = lowerScore >= upperScore ? lowerSide : upperSide;
 
-      // Choose closest from chosen side
       chosenSide.sort((a, b) => Math.abs(a.density - density) - Math.abs(b.density - density));
       estimatedPurity = chosenSide[0].purity;
     }
   } else {
-    // Step 4: No very close matches, fallback to nearest density
+    // No close match: fallback scaling method
     const closest = references.reduce((prev, curr) =>
-      Math.abs(curr.density - density) < Math.abs(prev.density - prev.density) ? curr : prev
+      Math.abs(curr.density - density) < Math.abs(prev.density - density) ? curr : prev
     );
     estimatedPurity = (density / closest.density) * closest.purity;
   }
 
+  // Clamp purity between 700 and 999.9
   estimatedPurity = Math.min(999.9, Math.max(700, estimatedPurity));
   const rounded = parseFloat(estimatedPurity.toFixed(1));
 
@@ -323,7 +323,6 @@
 
   document.getElementById("methodUsed").textContent = `Estimated from density matching`;
 }
-
 function animatePurity(target) {
   const display = document.getElementById("purityDisplay");
   let current = 0.0;
