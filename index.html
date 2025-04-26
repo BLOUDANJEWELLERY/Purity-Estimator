@@ -285,10 +285,8 @@
     const minPurity = Math.min(...purities);
 
     if (maxPurity - minPurity <= 5) {
-      // Tight cluster, average the purities
       estimatedPurity = purities.reduce((a, b) => a + b, 0) / purities.length;
     } else {
-      // Ambiguity resolution - scoring method
       const midPurity = (minPurity + maxPurity) / 2;
       const lowerSide = closeRefs.filter(r => r.purity <= midPurity);
       const upperSide = closeRefs.filter(r => r.purity > midPurity);
@@ -297,19 +295,33 @@
       const upperScore = upperSide.reduce((sum, r) => sum + (1 / Math.abs(r.density - density)), 0);
 
       const chosenSide = lowerScore >= upperScore ? lowerSide : upperSide;
-
       chosenSide.sort((a, b) => Math.abs(a.density - density) - Math.abs(b.density - density));
       estimatedPurity = chosenSide[0].purity;
     }
   } else {
-    // No close match: fallback scaling method
-    const closest = references.reduce((prev, curr) =>
-      Math.abs(curr.density - density) < Math.abs(prev.density - density) ? curr : prev
-    );
-    estimatedPurity = (density / closest.density) * closest.purity;
+    // Improved fallback: interpolate between nearest references
+    references.sort((a, b) => a.density - b.density);
+
+    let lower = null, upper = null;
+    for (let i = 0; i < references.length - 1; i++) {
+      if (references[i].density <= density && references[i + 1].density >= density) {
+        lower = references[i];
+        upper = references[i + 1];
+        break;
+      }
+    }
+
+    if (lower && upper) {
+      const ratio = (density - lower.density) / (upper.density - lower.density);
+      estimatedPurity = lower.purity + ratio * (upper.purity - lower.purity);
+    } else {
+      const closest = references.reduce((prev, curr) =>
+        Math.abs(curr.density - density) < Math.abs(prev.density - density) ? curr : prev
+      );
+      estimatedPurity = (density / closest.density) * closest.purity;
+    }
   }
 
-  // Clamp purity between 700 and 999.9
   estimatedPurity = Math.min(999.9, Math.max(700, estimatedPurity));
   const rounded = parseFloat(estimatedPurity.toFixed(1));
 
