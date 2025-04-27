@@ -300,7 +300,7 @@ function calculatePurity() {
   estimatedPurity = Math.min(999.9, Math.max(700, estimatedPurity));
 
   // Adjusting the purity based on the delta rule
-  const delta = estimatedPurity - 874;
+  const delta = estimatedPurity - 875;
   if (Math.abs(delta) <= 5) {
     estimatedPurity -= delta * 0.4;
     estimatedPurity = Math.round(estimatedPurity);
